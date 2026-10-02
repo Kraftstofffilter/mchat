@@ -5,6 +5,10 @@
 # Builds a portable nchat Linux binary in a container and stages the
 # install tree in dist/nchat-linux-<arch>-<libc>/. Requires docker.
 #
+# Extra `docker run` options (for example a memory cap and a compiler choice
+# on a small host) can be passed in NCHAT_DIST_DOCKER_ARGS:
+#   NCHAT_DIST_DOCKER_ARGS="--memory 2500m --memory-swap 2500m -e CC=clang -e CXX=clang++"
+#
 # Usage:
 #   utils/dist/build-linux.sh musl     fully static (Alpine/musl)
 #   utils/dist/build-linux.sh glibc    mostly static (manylinux/glibc)
@@ -88,6 +92,7 @@ docker run --rm --platform "${PLATFORM}" \
   -e GOMODCACHE=/cache/go/mod \
   -e JOBS="${JOBS:-}" \
   "${RUN_ENV[@]}" \
+  ${NCHAT_DIST_DOCKER_ARGS:-} \
   -v "${REPO_DIR}:/src" \
   -v "${CACHE_DIR}/ccache-${TARGET}:/cache/ccache" \
   -v "${CACHE_DIR}/go-${TARGET}:/cache/go" \

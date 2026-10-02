@@ -210,6 +210,21 @@ int UiView::GetEntryWidth()
   return m_UiEntryView->W();
 }
 
+int UiView::GetListChatIndexAt(int p_Y, int p_X)
+{
+  return m_UiListView ? m_UiListView->GetChatIndexAt(p_Y, p_X) : -1;
+}
+
+int UiView::GetHistoryMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment /*= nullptr*/)
+{
+  return m_UiHistoryView ? m_UiHistoryView->GetMessageOffsetAt(p_Y, p_X, p_IsAttachment) : -1;
+}
+
+bool UiView::IsHistoryAt(int p_Y, int p_X)
+{
+  return m_UiHistoryView && m_UiHistoryView->Contains(p_Y, p_X);
+}
+
 int UiView::GetScreenWidth()
 {
   return m_UiScreen->W();

@@ -12,7 +12,10 @@
 #include <unistd.h>
 #include <sys/select.h>
 
+#include "uikeyconfig.h"
 #include "uikeyinput.h"
+
+MEVENT UiController::s_MouseEvent = {};
 
 UiController::UiController()
 {
@@ -30,8 +33,12 @@ void UiController::Cleanup()
 {
 }
 
-wint_t UiController::GetKey(int p_TimeOutMs)
+wint_t UiController::GetKey(int p_TimeOutMs, bool p_AllowMouse /*= false*/)
 {
+  static const wint_t keyMouse = UiKeyConfig::GetOffsettedKeyCode(KEY_MOUSE, true);
+  static const wint_t keyUp = UiKeyConfig::GetKey("up");
+  static const wint_t keyDown = UiKeyConfig::GetKey("down");
+
   fd_set fds;
   FD_ZERO(&fds);
   FD_SET(STDIN_FILENO, &fds);
@@ -44,5 +51,26 @@ wint_t UiController::GetKey(int p_TimeOutMs)
     UiKeyInput::GetWch(&key);
   }
 
+  if (key == keyMouse)
+  {
+    if (getmouse(&s_MouseEvent) != OK)
+    {
+      return 0;
+    }
+
+    // callers without mouse handling (dialogs) get the wheel as up/down keys
+    if (!p_AllowMouse)
+    {
+      if (s_MouseEvent.bstate & BUTTON4_PRESSED) return keyUp;
+      if (s_MouseEvent.bstate & BUTTON5_PRESSED) return keyDown;
+      return 0;
+    }
+  }
+
   return key;
+}
+
+const MEVENT& UiController::GetMouseEvent()
+{
+  return s_MouseEvent;
 }

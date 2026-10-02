@@ -72,12 +72,15 @@ void UiListView::Draw()
   wbkgd(m_PaddedWin, attribute | colorPair | ' ');
   wattron(m_PaddedWin, attribute | colorPair);
 
+  m_DrawCount = 0;
   if (!names.empty())
   {
     int height = m_PaddedH;
     int count = names.size();
     int offset = std::min(std::max(0, index - ((height - 1) / 2)), std::max(0, count - height));
     int last = std::min((height + offset), count);
+    m_DrawOffset = offset;
+    m_DrawCount = count;
     for (int i = offset; i < last; ++i)
     {
       if (i == index)
@@ -122,4 +125,16 @@ void UiListView::Draw()
 
   wattroff(m_PaddedWin, attribute | colorPair);
   wrefresh(m_PaddedWin);
+}
+
+int UiListView::GetChatIndexAt(int p_Y, int p_X)
+{
+  if (!m_Enabled) return -1;
+
+  const int row = p_Y - (m_Y + 1);
+  const int col = p_X - (m_X + 1);
+  if ((row < 0) || (row >= m_PaddedH) || (col < 0) || (col >= m_PaddedW)) return -1;
+
+  const int index = m_DrawOffset + row;
+  return (index < m_DrawCount) ? index : -1;
 }

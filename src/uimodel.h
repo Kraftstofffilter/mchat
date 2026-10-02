@@ -8,6 +8,7 @@
 #pragma once
 
 #include <mutex>
+#include <ncurses.h>
 #include <set>
 #include <stack>
 #include <string>
@@ -47,6 +48,10 @@ private:
     void SetTyping(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_IsTyping);
 
     void OnKeyNextChat();
+    void OnMouse(const MEVENT& p_Event);
+    void OnMouseSelectChat(int p_ChatIndex);
+    void OnMouseScrollHistory(bool p_Up);
+    void OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachment);
     void OnKeyPrevChat();
     void OnKeyUnreadChat();
     void OnKeyPrevPage();

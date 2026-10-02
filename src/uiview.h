@@ -42,6 +42,9 @@ public:
   int GetHistoryShowCount();
   int GetHistoryLines();
   int GetEntryWidth();
+  int GetListChatIndexAt(int p_Y, int p_X);
+  int GetHistoryMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment = nullptr);
+  bool IsHistoryAt(int p_Y, int p_X);
   int GetScreenWidth();
   int GetScreenHeight();
   void DecreaseListWidth();

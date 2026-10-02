@@ -583,6 +583,126 @@ void UiModel::Impl::OnKeyPrevChat()
   SetSelectMessageActive(false);
 }
 
+void UiModel::Impl::OnMouse(const MEVENT& p_Event)
+{
+  const bool isWheelUp = (p_Event.bstate & BUTTON4_PRESSED);
+  const bool isWheelDown = (p_Event.bstate & BUTTON5_PRESSED);
+  const bool isClick = (p_Event.bstate & BUTTON1_PRESSED);
+  const int chatIndex = m_View->GetListChatIndexAt(p_Event.y, p_Event.x);
+
+  if (isWheelUp || isWheelDown)
+  {
+    if (chatIndex >= 0)
+    {
+      isWheelUp ? OnKeyPrevChat() : OnKeyNextChat();
+    }
+    else if (m_View->IsHistoryAt(p_Event.y, p_Event.x))
+    {
+      OnMouseScrollHistory(isWheelUp);
+    }
+  }
+  else if (isClick)
+  {
+    if (chatIndex >= 0)
+    {
+      OnMouseSelectChat(chatIndex);
+      return;
+    }
+
+    bool isAttachment = false;
+    const int messageOffset = m_View->GetHistoryMessageOffsetAt(p_Event.y, p_Event.x, &isAttachment);
+    if (messageOffset >= 0)
+    {
+      OnMouseSelectMessage(messageOffset, isAttachment);
+    }
+  }
+}
+
+void UiModel::Impl::OnMouseSelectChat(int p_ChatIndex)
+{
+  AnyUserKeyInput();
+
+  if (GetEditMessageActive()) return;
+
+  if ((p_ChatIndex < 0) || (p_ChatIndex >= (int)m_ChatVec.size())) return;
+
+  if (p_ChatIndex != m_CurrentChatIndex)
+  {
+    m_CurrentChatIndex = p_ChatIndex;
+    m_CurrentChat = m_ChatVec.at(m_CurrentChatIndex);
+    OnCurrentChatChanged();
+  }
+
+  SetSelectMessageActive(false);
+}
+
+void UiModel::Impl::OnMouseScrollHistory(bool p_Up)
+{
+  AnyUserKeyInput();
+
+  if (GetEditMessageActive()) return;
+
+  if (m_CurrentChat == s_ChatNone) return;
+
+  const std::string& profileId = m_CurrentChat.first;
+  const std::string& chatId = m_CurrentChat.second;
+  const int messageCount = m_Messages[profileId][chatId].size();
+  int& messageOffset = m_MessageOffset[profileId][chatId];
+
+  if (p_Up)
+  {
+    if (messageCount == 0) return;
+
+    if (GetSelectMessageActive())
+    {
+      messageOffset = std::min(messageOffset + 1, messageCount - 1);
+    }
+    else
+    {
+      SetSelectMessageActive(true);
+    }
+
+    RequestMessagesCurrentChat();
+  }
+  else if (GetSelectMessageActive())
+  {
+    if (messageOffset > 0)
+    {
+      messageOffset = messageOffset - 1;
+    }
+    else
+    {
+      SetSelectMessageActive(false);
+    }
+  }
+
+  UpdateHistory();
+}
+
+void UiModel::Impl::OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachment)
+{
+  AnyUserKeyInput();
+
+  if (GetEditMessageActive()) return;
+
+  if (m_CurrentChat == s_ChatNone) return;
+
+  const std::string& profileId = m_CurrentChat.first;
+  const std::string& chatId = m_CurrentChat.second;
+  const int messageCount = m_Messages[profileId][chatId].size();
+  if ((p_MessageOffset < 0) || (p_MessageOffset >= messageCount)) return;
+
+  m_MessageOffset[profileId][chatId] = p_MessageOffset;
+  SetSelectMessageActive(true);
+  RequestMessagesCurrentChat();
+  UpdateHistory();
+
+  if (p_OpenAttachment)
+  {
+    OnKeyOpenAttachment();
+  }
+}
+
 void UiModel::Impl::OnKeyUnreadChat()
 {
   AnyUserKeyInput();
@@ -4546,7 +4666,14 @@ void UiModel::KeyHandler(wint_t p_Key)
   static wint_t keyAutoCompose = UiKeyConfig::GetKey("auto_compose");
   static wint_t keySelectMention = UiKeyConfig::GetKey("select_mention");
 
-  if (p_Key == keyTerminalResize)
+  static wint_t keyMouse = UiKeyConfig::GetOffsettedKeyCode(KEY_MOUSE, true);
+
+  if (p_Key == keyMouse)
+  {
+    std::unique_lock<owned_mutex> lock(m_ModelMutex);
+    GetImpl().OnMouse(UiController::GetMouseEvent());
+  }
+  else if (p_Key == keyTerminalResize)
   {
     std::unique_lock<owned_mutex> lock(m_ModelMutex);
     GetImpl().TerminalResize();

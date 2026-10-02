@@ -8,6 +8,8 @@
 #pragma once
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "uiviewbase.h"
 
@@ -20,6 +22,10 @@ public:
   virtual void Draw();
   int GetHistoryShowCount();
 
+  // message offset (0 = newest) drawn at screen position, or -1
+  int GetMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment = nullptr);
+  bool Contains(int p_Y, int p_X);
+
 private:
   std::string GetTimeString(int64_t p_TimeSent);
 
@@ -28,4 +34,8 @@ private:
   int m_PaddedH = 0;
   int m_PaddedW = 0;
   int m_HistoryShowCount = 0;
+
+  // per padded row: offset of the message drawn there (-1 if none), and
+  // whether the row is its attachment line
+  std::vector<std::pair<int, bool>> m_RowHits;
 };

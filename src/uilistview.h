@@ -19,8 +19,13 @@ public:
 
   virtual void Draw();
 
+  // chat index drawn at screen position, or -1
+  int GetChatIndexAt(int p_Y, int p_X);
+
 private:
   WINDOW* m_PaddedWin = nullptr;
   int m_PaddedH = 0;
   int m_PaddedW = 0;
+  int m_DrawOffset = 0;
+  int m_DrawCount = 0;
 };

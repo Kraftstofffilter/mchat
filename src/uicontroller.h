@@ -18,7 +18,9 @@ public:
   void Init();
   void Cleanup();
 
-  static wint_t GetKey(int p_TimeOutMs);
+  static wint_t GetKey(int p_TimeOutMs, bool p_AllowMouse = false);
+  static const MEVENT& GetMouseEvent();
 
 private:
+  static MEVENT s_MouseEvent;
 };

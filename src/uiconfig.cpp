@@ -51,6 +51,7 @@ void UiConfig::Init()
     { "link_open_command", "" },
     { "list_enabled", "1" },
     { "list_width", "14" },
+    { "mouse_enabled", "1" },
     { "listdialog_show_filter", "1" },
     { "mark_read_any_chat", "0" },
     { "mark_read_on_view", "1" },

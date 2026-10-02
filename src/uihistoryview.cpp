@@ -86,6 +86,8 @@ void UiHistoryView::Draw()
   wbkgd(m_PaddedWin, attributeTextNormal | colorPairTextRecv | ' ');
 
   m_HistoryShowCount = 0;
+  m_RowHits.assign(std::max(m_PaddedH, 0), std::make_pair(-1, false));
+  int drawMessageOffset = messageOffset;
 
   bool firstMessage = true;
   int y = m_PaddedH - 1;
@@ -97,6 +99,7 @@ void UiHistoryView::Draw()
     if (msgIt == messages.end())
     {
       LOG_WARNING("message %s missing", it->c_str());
+      ++drawMessageOffset;
       continue;
     }
 
@@ -339,6 +342,7 @@ void UiHistoryView::Draw()
 
       const std::wstring wdisp = isReaction ? *wline : StrUtil::TrimPadWString(*wline, m_PaddedW);
       mvwaddnwstr(m_PaddedWin, y, 0, wdisp.c_str(), std::min((int)wdisp.size(), m_PaddedW));
+      m_RowHits[y] = std::make_pair(drawMessageOffset, isAttachment);
 
       if (isAttachment)
       {
@@ -421,6 +425,7 @@ void UiHistoryView::Draw()
 
     std::wstring wdisp = StrUtil::TrimPadWString(wheader, m_PaddedW);
     mvwaddnwstr(m_PaddedWin, y, 0, wdisp.c_str(), std::min((int)wdisp.size(), m_PaddedW));
+    m_RowHits[y] = std::make_pair(drawMessageOffset, false);
 
     wattroff(m_PaddedWin, attributeName | colorPairName);
 
@@ -431,6 +436,7 @@ void UiHistoryView::Draw()
     if (--y < 0) break;
 
     firstMessage = false;
+    ++drawMessageOffset;
   }
 
   wrefresh(m_PaddedWin);
@@ -439,4 +445,26 @@ void UiHistoryView::Draw()
 int UiHistoryView::GetHistoryShowCount()
 {
   return m_HistoryShowCount;
+}
+
+bool UiHistoryView::Contains(int p_Y, int p_X)
+{
+  return m_Enabled && (p_Y >= m_Y) && (p_Y < (m_Y + m_H)) && (p_X >= m_X) && (p_X < (m_X + m_W));
+}
+
+int UiHistoryView::GetMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment /*= nullptr*/)
+{
+  if (!m_Enabled) return -1;
+
+  const int hpad = (m_X == 0) ? 0 : 1;
+  const int row = p_Y - (m_Y + 1);
+  const int col = p_X - (m_X + hpad);
+  if ((row < 0) || (row >= (int)m_RowHits.size()) || (col < 0) || (col >= m_PaddedW)) return -1;
+
+  if (p_IsAttachment != nullptr)
+  {
+    *p_IsAttachment = m_RowHits[row].second;
+  }
+
+  return m_RowHits[row].first;
 }

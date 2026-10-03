@@ -48,7 +48,7 @@ void AppUtil::AssertionFailed()
 
 std::string AppUtil::GetAppName(bool p_WithVersion, bool p_WithBranch /*= false*/)
 {
-  std::string name = "nchat";
+  std::string name = "mchat";
   if (p_WithVersion)
   {
     name += " " + GetAppVersion();

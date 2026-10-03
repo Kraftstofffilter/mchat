@@ -170,10 +170,12 @@ namespace
     static std::vector<bool> s_Initialized(s_MaxImageId + 1, false);
     if (!s_Initialized[p_Id])
     {
-      short fg = 0;
-      short bg = 0;
-      pair_content(0, &fg, &bg);
-      init_pair(pair, p_Id, bg);
+      // pair numbers this high need the extended color API (COLOR_PAIR()
+      // in attributes only holds 8 bits)
+      int fg = 0;
+      int bg = 0;
+      extended_pair_content(0, &fg, &bg);
+      init_extended_pair(pair, p_Id, bg);
       s_Initialized[p_Id] = true;
     }
 

@@ -411,9 +411,11 @@ void UiHistoryView::Draw()
       {
         const int thumbPair = (int)wline->at(1);
         const std::wstring wthumb = wline->substr(2);
-        wattron(m_PaddedWin, COLOR_PAIR(thumbPair));
+        // extended pair (above 255): set through wattr_set's opts argument
+        int extPair = thumbPair;
+        wattr_set(m_PaddedWin, A_NORMAL, 0, &extPair);
         mvwaddnwstr(m_PaddedWin, y, 0, wthumb.c_str(), wthumb.size());
-        wattroff(m_PaddedWin, COLOR_PAIR(thumbPair));
+        wattr_set(m_PaddedWin, A_NORMAL, 0, nullptr);
         m_RowHits[y] = std::make_pair(drawMessageOffset, true);
         if (--y < 0) break;
         continue;

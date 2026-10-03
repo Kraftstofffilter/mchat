@@ -126,6 +126,7 @@ private:
                                                               const std::string& p_ChatId);
     std::vector<std::string>& GetMessageVec(const std::string& p_ProfileId, const std::string& p_ChatId);
     int& GetMessageOffset(const std::string& p_ProfileId, const std::string& p_ChatId);
+    int GetHistoryViewStart(const std::string& p_ProfileId, const std::string& p_ChatId);
 
     void SetStatusOnline(const std::string& p_ProfileId, bool p_IsOnline);
     void RequestContacts();
@@ -266,6 +267,8 @@ private:
     std::unordered_map<std::string,
                        std::unordered_map<std::string, std::unordered_map<std::string, ChatMessage>>> m_Messages;
     std::unordered_map<std::string, std::unordered_map<std::string, int>> m_MessageOffset;
+    // mouse selection keeps the view: {view start, selected message offset}
+    std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> m_MouseViewAnchor;
     std::unordered_map<std::string, std::unordered_map<std::string, std::stack<int>>> m_MessageOffsetStack;
     std::unordered_map<std::string,
                        std::unordered_map<std::string, std::unordered_set<std::string>>> m_MsgFromIdsRequested;
@@ -367,6 +370,7 @@ public:
   bool GetFileListDialogActiveLocked();
   bool GetMessageDialogActiveLocked();
   int GetMessageOffsetLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
+  int GetHistoryViewStartLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   std::unordered_map<std::string, ChatMessage>& GetMessagesLocked(const std::string& p_ProfileId,
                                                                   const std::string& p_ChatId);
   std::vector<std::string>& GetMessageVecLocked(const std::string& p_ProfileId, const std::string& p_ChatId);

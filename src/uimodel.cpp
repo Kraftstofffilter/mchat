@@ -692,7 +692,9 @@ void UiModel::Impl::OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachm
   const int messageCount = m_Messages[profileId][chatId].size();
   if ((p_MessageOffset < 0) || (p_MessageOffset >= messageCount)) return;
 
+  const int viewStart = GetHistoryViewStart(profileId, chatId);
   m_MessageOffset[profileId][chatId] = p_MessageOffset;
+  m_MouseViewAnchor[profileId][chatId] = std::make_pair(std::min(viewStart, p_MessageOffset), p_MessageOffset);
   SetSelectMessageActive(true);
   RequestMessagesCurrentChat();
   UpdateHistory();
@@ -3201,6 +3203,26 @@ int& UiModel::Impl::GetMessageOffset(const std::string& p_ProfileId, const std::
   return m_MessageOffset[p_ProfileId][p_ChatId];
 }
 
+int UiModel::Impl::GetHistoryViewStart(const std::string& p_ProfileId, const std::string& p_ChatId)
+{
+  // offset of the newest message to draw at the bottom of the history view;
+  // normally the selected message, but a mouse selection keeps the view where
+  // it was until the selection is moved by other means
+  const int messageOffset = std::max(m_MessageOffset[p_ProfileId][p_ChatId], 0);
+  if (!GetSelectMessageActive()) return messageOffset;
+
+  auto chatIt = m_MouseViewAnchor.find(p_ProfileId);
+  if (chatIt == m_MouseViewAnchor.end()) return messageOffset;
+
+  auto anchorIt = chatIt->second.find(p_ChatId);
+  if (anchorIt == chatIt->second.end()) return messageOffset;
+
+  const std::pair<int, int>& anchor = anchorIt->second;
+  if ((anchor.second != messageOffset) || (anchor.first > messageOffset)) return messageOffset;
+
+  return std::max(anchor.first, 0);
+}
+
 bool UiModel::Impl::GetSelectMessageActive()
 {
   return m_SelectMessageActive;
@@ -5176,6 +5198,12 @@ int UiModel::GetMessageOffsetLocked(const std::string& p_ProfileId, const std::s
 {
   nc_assert(m_ModelMutex.owns_lock());
   return GetImpl().GetMessageOffset(p_ProfileId, p_ChatId);
+}
+
+int UiModel::GetHistoryViewStartLocked(const std::string& p_ProfileId, const std::string& p_ChatId)
+{
+  nc_assert(m_ModelMutex.owns_lock());
+  return GetImpl().GetHistoryViewStart(p_ProfileId, p_ChatId);
 }
 
 std::unordered_map<std::string, ChatMessage>& UiModel::GetMessagesLocked(const std::string& p_ProfileId,

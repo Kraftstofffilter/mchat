@@ -72,12 +72,20 @@ void UiListView::Draw()
   wbkgd(m_PaddedWin, attribute | colorPair | ' ');
   wattron(m_PaddedWin, attribute | colorPair);
 
+  const int prevDrawCount = m_DrawCount;
   m_DrawCount = 0;
   if (!names.empty())
   {
     int height = m_PaddedH;
     int count = names.size();
     int offset = std::min(std::max(0, index - ((height - 1) / 2)), std::max(0, count - height));
+    // keep the previous position while the current chat stays visible, so a
+    // mouse click does not scroll the list under the pointer
+    if ((prevDrawCount == count) && (index >= m_DrawOffset) && (index < (m_DrawOffset + height)) &&
+        (m_DrawOffset <= std::max(0, count - height)))
+    {
+      offset = m_DrawOffset;
+    }
     int last = std::min((height + offset), count);
     m_DrawOffset = offset;
     m_DrawCount = count;

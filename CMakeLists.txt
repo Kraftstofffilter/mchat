@@ -428,6 +428,8 @@ add_executable(nchat
   src/uihelpview.h
   src/uihistoryview.cpp
   src/uihistoryview.h
+  src/uifiles.cpp
+  src/uifiles.h
   src/uiimage.cpp
   src/uiimage.h
   src/uikeyconfig.cpp

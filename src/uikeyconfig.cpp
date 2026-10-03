@@ -231,6 +231,7 @@ void UiKeyConfig::Init(bool p_MapKeys)
     { "find_next", "\\33\\77" }, // alt/opt-?
     { "toggle_emoji", "KEY_CTRLY" },
     { "toggle_help", "KEY_CTRLG" },
+    { "clean_files", "\\33\\153" }, // alt/opt-k
     { "toggle_list", "KEY_CTRLL" },
     { "toggle_top", "KEY_NONE" },
     { "next_chat", "KEY_TAB" },

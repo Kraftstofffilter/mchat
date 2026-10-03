@@ -34,11 +34,12 @@ static std::string GetAttachmentLink(const std::string& p_FilePath)
   static const std::string linkBase = UiConfig::GetStr("attachment_link_base");
   if (linkBase.empty() || p_FilePath.empty()) return "";
 
-  static std::unordered_map<std::string, std::string> s_Links;
-  auto it = s_Links.find(p_FilePath);
-  if (it != s_Links.end()) return it->second;
-
   if (!FileUtil::Exists(p_FilePath)) return "";
+
+  // cached URL, as long as the published file still exists (Alt-k cleans)
+  static std::unordered_map<std::string, std::pair<std::string, std::string>> s_Links;
+  auto it = s_Links.find(p_FilePath);
+  if ((it != s_Links.end()) && FileUtil::Exists(it->second.second)) return it->second.first;
 
   static const std::string linkDir = FileUtil::ExpandPath(UiConfig::GetStr("attachment_link_dir"));
   char id[9];
@@ -71,7 +72,7 @@ static std::string GetAttachmentLink(const std::string& p_FilePath)
   }
 
   const std::string url = linkBase + "/" + id + "/" + encodedName;
-  s_Links[p_FilePath] = url;
+  s_Links[p_FilePath] = std::make_pair(url, dstPath);
   return url;
 }
 
@@ -440,6 +441,12 @@ void UiHistoryView::Draw()
         static const std::string statusNotDownloaded = " " + UiConfig::GetStr("downloadable_indicator");
         fileStatus = statusNotDownloaded;
       }
+      else if ((fileInfo.fileStatus == FileStatusDownloaded) && !FileUtil::Exists(fileInfo.filePath))
+      {
+        // deleted (cleaned) after download: downloadable again
+        static const std::string statusCleaned = " " + UiConfig::GetStr("downloadable_indicator");
+        fileStatus = statusCleaned;
+      }
       else if (fileInfo.fileStatus == FileStatusDownloaded)
       {
         static const std::string statusDownloaded = "";
@@ -456,7 +463,8 @@ void UiHistoryView::Draw()
         fileStatus = statusDownloadFailed;
       }
 
-      if (fileInfo.fileStatus == FileStatusDownloaded)
+      const bool isFilePresent = (fileInfo.fileStatus == FileStatusDownloaded) && FileUtil::Exists(fileInfo.filePath);
+      if (isFilePresent)
       {
         // attachmentLink is set below; the mark depends only on links being on
         static const std::string linkedIndicator = UiConfig::GetStr("linked_indicator");
@@ -468,7 +476,7 @@ void UiHistoryView::Draw()
       }
 
       std::wstring fileStr = attachmentIndicator + StrUtil::ToWString(fileName + fileStatus);
-      if (fileInfo.fileStatus == FileStatusDownloaded)
+      if (isFilePresent)
       {
         int thumbHandle = 0;
         int thumbCols = 0;

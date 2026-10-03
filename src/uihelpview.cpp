@@ -15,6 +15,7 @@
 #include "uicolorconfig.h"
 #include "uiconfig.h"
 #include "uikeyconfig.h"
+#include "uifiles.h"
 #include "uimodel.h"
 
 UiHelpView::UiHelpView(const UiViewParams& p_Params)
@@ -159,17 +160,26 @@ void UiHelpView::Draw()
   static std::vector<std::wstring> defaultHelpViews;
 
   static int prevW = 0;
-  if (m_W != prevW)
+  static std::string prevFilesLabel;
+  const std::string filesLabel = UiFiles::SizeLabel();
+  if ((m_W != prevW) || (filesLabel != prevFilesLabel))
   {
     prevW = m_W;
+    prevFilesLabel = filesLabel;
+
+    // last command: size of downloaded files, cleaned on click or key
+    std::vector<std::wstring> selectItems = mainSelectHelpItems;
+    std::vector<std::wstring> defaultItems = mainDefaultHelpItems;
+    AppendHelpItem("clean_files", filesLabel, selectItems);
+    AppendHelpItem("clean_files", filesLabel, defaultItems);
 
     const int maxW = m_W - 2;
     listDialogHelpViews = GetHelpViews(maxW, listDialogHelpItems, otherHelpItem);
     fileListDialogHelpViews = GetHelpViews(maxW, fileListDialogHelpItems, otherHelpItem);
     messageDialogHelpViews = GetHelpViews(maxW, messageDialogHelpItems, otherHelpItem);
     editMessageHelpViews = GetHelpViews(maxW, editMessageHelpItems, otherHelpItem);
-    selectHelpViews = GetHelpViews(maxW, mainSelectHelpItems, otherHelpItem);
-    defaultHelpViews = GetHelpViews(maxW, mainDefaultHelpItems, otherHelpItem);
+    selectHelpViews = GetHelpViews(maxW, selectItems, otherHelpItem);
+    defaultHelpViews = GetHelpViews(maxW, defaultItems, otherHelpItem);
   }
 
   static int colorPair = UiColorConfig::GetColorPair("help_color");

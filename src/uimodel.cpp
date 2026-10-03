@@ -33,6 +33,7 @@
 #include "uicontactlistdialog.h"
 #include "uigroupmemberlistdialog.h"
 #include "uicontroller.h"
+#include "uifiles.h"
 #include "uiimage.h"
 #include "uiemojilistdialog.h"
 #include "uifilelistdialog.h"
@@ -708,6 +709,12 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
       m_View->ClearHistorySelection();
     }
   }
+}
+
+void UiModel::Impl::OnFilesCleaned()
+{
+  UpdateHistory();
+  UpdateHelp();
 }
 
 void UiModel::Impl::CopyToClipboard(const std::string& p_Text)
@@ -2240,6 +2247,7 @@ void UiModel::Impl::MessageHandler(std::shared_ptr<ServiceMessage> p_ServiceMess
           mit->second.fileInfo = fileInfoStr;
         }
 
+        UiFiles::Refresh();
         const bool isPendingOpen = (m_PendingOpenMsg.first == chatId) && (m_PendingOpenMsg.second == msgId);
         if ((downloadFileAction == DownloadFileActionOpen) || isPendingOpen)
         {
@@ -2616,6 +2624,11 @@ bool UiModel::Impl::Process()
   if (UiImage::TakeUpdated())
   {
     UpdateHistory();
+  }
+
+  if (UiFiles::TakeChanged())
+  {
+    UpdateHelp();
   }
 
   if (!m_PendingOpenPath.empty())
@@ -4851,6 +4864,7 @@ void UiModel::KeyHandler(wint_t p_Key)
   static wint_t keySelectMention = UiKeyConfig::GetKey("select_mention");
 
   static wint_t keyMouse = UiKeyConfig::GetOffsettedKeyCode(KEY_MOUSE, true);
+  static wint_t keyCleanFiles = UiKeyConfig::GetKey("clean_files");
 
   if (p_Key == keyMouse)
   {
@@ -4873,6 +4887,10 @@ void UiModel::KeyHandler(wint_t p_Key)
         KeyHandler(helpKey);
       }
     }
+  }
+  else if (p_Key == keyCleanFiles)
+  {
+    OnKeyCleanFiles();
   }
   else if (p_Key == keyTerminalResize)
   {
@@ -5795,6 +5813,22 @@ void UiModel::OnKeyDeleteMsg()
 
   std::unique_lock<owned_mutex> lock(m_ModelMutex);
   GetImpl().OnKeyDeleteMsg();
+}
+
+void UiModel::OnKeyCleanFiles()
+{
+  // Open modal dialog without model mutex held
+  const std::string label = UiFiles::SizeLabel();
+  const std::string size = label.substr(label.find(' ') + 1);
+  if (!MessageDialog("Confirmation", "Delete downloaded files (" + size + ")?", 0.5, 5))
+  {
+    return;
+  }
+
+  UiFiles::Clean();
+
+  std::unique_lock<owned_mutex> lock(m_ModelMutex);
+  GetImpl().OnFilesCleaned();
 }
 
 void UiModel::OnKeyDeleteChat()

@@ -49,6 +49,7 @@ private:
 
     void OnKeyNextChat();
     void OnMouse(const MEVENT& p_Event);
+    void OnFilesCleaned();
     void CopyToClipboard(const std::string& p_Text);
     std::string GetHelpFuncAt(const MEVENT& p_Event);
     void OnMouseSelectChat(int p_ChatIndex);
@@ -428,6 +429,7 @@ private:
   void OnKeyForwardMsg();
   bool MessageDialog(const std::string& p_Title, const std::string& p_Text, float p_WReq, float p_HReq);
   void OnKeyDeleteMsg();
+  void OnKeyCleanFiles();
   void OnKeyDeleteChat();
   void OnKeyArchiveChat();
   void OnKeyPin();

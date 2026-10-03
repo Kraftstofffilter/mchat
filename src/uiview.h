@@ -47,6 +47,9 @@ public:
   int GetHistoryMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment = nullptr);
   bool IsHistoryAt(int p_Y, int p_X);
   std::string GetHelpFuncAt(int p_Y, int p_X);
+  void SetHistorySelection(int p_Y1, int p_X1, int p_Y2, int p_X2);
+  void ClearHistorySelection();
+  std::string GetHistorySelectionText();
   bool IsListAt(int p_Y, int p_X);
   bool IsListTopButtonAt(int p_Y, int p_X);
   bool IsListBorderAt(int p_Y, int p_X);

@@ -262,6 +262,21 @@ void UiView::SetListWidth(int p_Width)
   m_ListWidth = std::min(std::max(p_Width, 8), std::max(m_UiScreen->W() - 20, 8));
 }
 
+void UiView::SetHistorySelection(int p_Y1, int p_X1, int p_Y2, int p_X2)
+{
+  if (m_UiHistoryView) m_UiHistoryView->SetSelection(p_Y1, p_X1, p_Y2, p_X2);
+}
+
+void UiView::ClearHistorySelection()
+{
+  if (m_UiHistoryView) m_UiHistoryView->ClearSelection();
+}
+
+std::string UiView::GetHistorySelectionText()
+{
+  return m_UiHistoryView ? m_UiHistoryView->GetSelectionText() : "";
+}
+
 std::string UiView::GetHelpFuncAt(int p_Y, int p_X)
 {
   return m_UiHelpView ? m_UiHelpView->GetFuncAt(p_Y, p_X) : "";

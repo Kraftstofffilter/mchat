@@ -625,6 +625,47 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
     return;
   }
 
+  // press in the history: dragging selects text (copied on release), a
+  // press and release without moving acts as a click
+  if (m_MouseHistoryPress)
+  {
+    if (isMotion)
+    {
+      if ((p_Event.y != m_MousePressY) || (p_Event.x != m_MousePressX))
+      {
+        m_MouseHistoryDragged = true;
+      }
+
+      if (m_MouseHistoryDragged)
+      {
+        m_View->SetHistorySelection(m_MousePressY, m_MousePressX, p_Event.y, p_Event.x);
+      }
+
+      return;
+    }
+
+    if (isRelease || isClick)
+    {
+      m_MouseHistoryPress = false;
+      if (m_MouseHistoryDragged)
+      {
+        m_View->SetHistorySelection(m_MousePressY, m_MousePressX, p_Event.y, p_Event.x);
+        // the highlight stays as feedback until the next press
+        CopyToClipboard(m_View->GetHistorySelectionText());
+        return;
+      }
+
+      bool isAttachment = false;
+      const int messageOffset = m_View->GetHistoryMessageOffsetAt(m_MousePressY, m_MousePressX, &isAttachment);
+      if (messageOffset >= 0)
+      {
+        OnMouseSelectMessage(messageOffset, isAttachment);
+      }
+
+      if (isRelease) return;
+    }
+  }
+
   if (!isClick && (isRelease || isMotion)) return;
 
   if (isClick && m_View->IsListBorderAt(p_Event.y, p_Event.x))
@@ -658,13 +699,48 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
       return;
     }
 
-    bool isAttachment = false;
-    const int messageOffset = m_View->GetHistoryMessageOffsetAt(p_Event.y, p_Event.x, &isAttachment);
-    if (messageOffset >= 0)
+    if (m_View->IsHistoryAt(p_Event.y, p_Event.x))
     {
-      OnMouseSelectMessage(messageOffset, isAttachment);
+      m_MouseHistoryPress = true;
+      m_MouseHistoryDragged = false;
+      m_MousePressY = p_Event.y;
+      m_MousePressX = p_Event.x;
+      m_View->ClearHistorySelection();
     }
   }
+}
+
+void UiModel::Impl::CopyToClipboard(const std::string& p_Text)
+{
+  if (p_Text.empty()) return;
+
+  // OSC 52: the terminal (or herdr, which forwards it) sets the clipboard
+  static const char* tbl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  std::string b64;
+  size_t i = 0;
+  for (; (i + 2) < p_Text.size(); i += 3)
+  {
+    const unsigned v = ((unsigned char)p_Text[i] << 16) | ((unsigned char)p_Text[i + 1] << 8) |
+      (unsigned char)p_Text[i + 2];
+    b64 += tbl[(v >> 18) & 63];
+    b64 += tbl[(v >> 12) & 63];
+    b64 += tbl[(v >> 6) & 63];
+    b64 += tbl[v & 63];
+  }
+
+  if (i < p_Text.size())
+  {
+    unsigned v = (unsigned char)p_Text[i] << 16;
+    if ((i + 1) < p_Text.size()) v |= (unsigned char)p_Text[i + 1] << 8;
+    b64 += tbl[(v >> 18) & 63];
+    b64 += tbl[(v >> 12) & 63];
+    b64 += ((i + 1) < p_Text.size()) ? tbl[(v >> 6) & 63] : '=';
+    b64 += '=';
+  }
+
+  const std::string seq = "\033]52;c;" + b64 + "\a";
+  fwrite(seq.data(), 1, seq.size(), stdout);
+  fflush(stdout);
 }
 
 std::string UiModel::Impl::GetHelpFuncAt(const MEVENT& p_Event)

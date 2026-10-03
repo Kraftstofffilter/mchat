@@ -49,6 +49,7 @@ private:
 
     void OnKeyNextChat();
     void OnMouse(const MEVENT& p_Event);
+    void CopyToClipboard(const std::string& p_Text);
     std::string GetHelpFuncAt(const MEVENT& p_Event);
     void OnMouseSelectChat(int p_ChatIndex);
     void OnMouseScrollHistory(bool p_Up);
@@ -272,6 +273,11 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, int>> m_ScrollViewStart;
     // list border being dragged to resize the chat list
     bool m_MouseDragBorder = false;
+    // press in the history: a click on release, or a text selection if dragged
+    bool m_MouseHistoryPress = false;
+    bool m_MouseHistoryDragged = false;
+    int m_MousePressY = 0;
+    int m_MousePressX = 0;
     // attachment to open on the UI thread once downloaded: {chat id, msg id}
     std::pair<std::string, std::string> m_PendingOpenMsg;
     std::string m_PendingOpenPath;

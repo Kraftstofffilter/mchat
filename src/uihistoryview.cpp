@@ -245,6 +245,7 @@ void UiHistoryView::Draw()
 
   m_HistoryShowCount = 0;
   m_RowHits.assign(std::max(m_PaddedH, 0), std::make_pair(-1, false));
+  m_ThumbRows.assign(std::max(m_PaddedH, 0), false);
   m_LinkRows.clear();
   int drawMessageOffset = messageOffset;
 
@@ -594,6 +595,7 @@ void UiHistoryView::Draw()
       if (isThumbnail)
       {
         UiImage::DrawRow(m_PaddedWin, y, 2, (int)wline->at(1) - 1, (int)wline->at(2) - 1, (int)wline->at(3));
+        m_ThumbRows[y] = true;
         m_RowHits[y] = std::make_pair(drawMessageOffset, true);
         if (--y < 0) break;
         continue;
@@ -742,8 +744,119 @@ void UiHistoryView::Draw()
     ++drawMessageOffset;
   }
 
+  DrawSelection();
   wrefresh(m_PaddedWin);
   EmitLinks();
+}
+
+bool UiHistoryView::GetSelectionRange(int& p_Row1, int& p_Col1, int& p_Row2, int& p_Col2)
+{
+  if (!m_SelectionActive) return false;
+
+  const int hpad = (m_X == 0) ? 0 : 1;
+  auto toRow = [&](int y) { return std::min(std::max(y - (m_Y + 1), 0), m_PaddedH - 1); };
+  auto toCol = [&](int x) { return std::min(std::max(x - (m_X + hpad), 0), m_PaddedW - 1); };
+  int r1 = toRow(m_SelY1);
+  int c1 = toCol(m_SelX1);
+  int r2 = toRow(m_SelY2);
+  int c2 = toCol(m_SelX2);
+  if ((r2 < r1) || ((r2 == r1) && (c2 < c1)))
+  {
+    std::swap(r1, r2);
+    std::swap(c1, c2);
+  }
+
+  p_Row1 = r1;
+  p_Col1 = c1;
+  p_Row2 = r2;
+  p_Col2 = c2;
+  return true;
+}
+
+void UiHistoryView::DrawSelection()
+{
+  int r1 = 0;
+  int c1 = 0;
+  int r2 = 0;
+  int c2 = 0;
+  if (!GetSelectionRange(r1, c1, r2, c2)) return;
+
+  for (int row = r1; row <= r2; ++row)
+  {
+    if ((row < (int)m_ThumbRows.size()) && m_ThumbRows[row]) continue;
+
+    const int from = (row == r1) ? c1 : 0;
+    const int to = (row == r2) ? c2 : (m_PaddedW - 1);
+    mvwchgat(m_PaddedWin, row, from, to - from + 1, A_REVERSE, 0, nullptr);
+  }
+}
+
+void UiHistoryView::SetSelection(int p_Y1, int p_X1, int p_Y2, int p_X2)
+{
+  m_SelectionActive = true;
+  m_SelY1 = p_Y1;
+  m_SelX1 = p_X1;
+  m_SelY2 = p_Y2;
+  m_SelX2 = p_X2;
+  SetDirty(true);
+}
+
+void UiHistoryView::ClearSelection()
+{
+  if (!m_SelectionActive) return;
+
+  m_SelectionActive = false;
+  SetDirty(true);
+}
+
+std::string UiHistoryView::GetSelectionText()
+{
+  int r1 = 0;
+  int c1 = 0;
+  int r2 = 0;
+  int c2 = 0;
+  if (!GetSelectionRange(r1, c1, r2, c2)) return "";
+
+  std::wstring text;
+  for (int row = r1; row <= r2; ++row)
+  {
+    if ((row < (int)m_ThumbRows.size()) && m_ThumbRows[row]) continue;
+
+    // read the drawn cells back; wide characters take two columns
+    std::wstring line;
+    for (int col = 0; col < m_PaddedW; ++col)
+    {
+      cchar_t cell;
+      if (mvwin_wch(m_PaddedWin, row, col, &cell) != OK) break;
+
+      wchar_t wch[CCHARW_MAX + 1] = { 0 };
+      attr_t attrs = 0;
+      short pair = 0;
+      getcchar(&cell, wch, &attrs, &pair, nullptr);
+      const int from = (row == r1) ? c1 : 0;
+      const int to = (row == r2) ? c2 : (m_PaddedW - 1);
+      if ((col >= from) && (col <= to) && (wch[0] != 0))
+      {
+        line += wch;
+      }
+
+      const int w = wcwidth(wch[0]);
+      if (w > 1) col += w - 1;
+    }
+
+    const size_t end = line.find_last_not_of(L' ');
+    line = (end == std::wstring::npos) ? std::wstring() : line.substr(0, end + 1);
+    if (!text.empty() || (row > r1)) text += L"\n";
+    text += line;
+  }
+
+  // drop the leading newline added for an empty first line
+  while (!text.empty() && (text.at(0) == L'\n'))
+  {
+    text.erase(0, 1);
+  }
+
+  return StrUtil::ToString(text);
 }
 
 void UiHistoryView::EmitLinks()

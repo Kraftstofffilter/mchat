@@ -42,6 +42,10 @@ Attachments:
   drawn in its own color.
 - Pictures get an inline preview under the attachment line, drawn with colored
   half blocks so it appears in any 256-color terminal.
+- The last help bar command shows the size of downloaded files (attachments,
+  published links, previews), for example `Alt-k Files 31M`. Clicking it or
+  pressing Alt-k asks for confirmation and deletes them; session data is never
+  touched. Deleted attachments show `⬇` again and download anew on click.
 - A full-screen picture viewer (`utils/mchat/mchat-preview.py`) can be set as
   the attachment open command; it uses the Kitty graphics protocol where
   available and colored blocks elsewhere.

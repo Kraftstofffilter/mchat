@@ -7,6 +7,8 @@
 
 #include "uihelpview.h"
 
+#include <unordered_map>
+
 #include <algorithm>
 
 #include "strutil.h"
@@ -203,6 +205,7 @@ void UiHelpView::Draw()
     wstr = defaultHelpViews.at(m_Model->GetHelpOffsetLocked() % defaultHelpViews.size());
   }
 
+  m_DrawnStr = wstr;
   wstr = L" " + wstr + std::wstring(std::max(m_W - (int)wstr.size(), 0), L' ');
   mvwaddnwstr(m_Win, 0, 0, wstr.c_str(), std::min((int)wstr.size(), m_W));
 
@@ -253,6 +256,13 @@ std::vector<std::wstring> UiHelpView::GetHelpViews(const int p_MaxW, const std::
   return helpViews;
 }
 
+// help item text -> key function, for clicking on items
+static std::unordered_map<std::wstring, std::string>& HelpItemFuncs()
+{
+  static std::unordered_map<std::wstring, std::string> s_HelpItemFuncs;
+  return s_HelpItemFuncs;
+}
+
 void UiHelpView::AppendHelpItem(const std::string& p_Func, const std::string& p_Desc,
                                 std::vector<std::wstring>& p_HelpItems)
 {
@@ -261,7 +271,38 @@ void UiHelpView::AppendHelpItem(const std::string& p_Func, const std::string& p_
   {
     const std::string helpItem = keyDisplay + " " + p_Desc;
     p_HelpItems.push_back(StrUtil::ToWString(helpItem));
+    HelpItemFuncs()[p_HelpItems.back()] = p_Func;
   }
+}
+
+std::string UiHelpView::GetFuncAt(int p_Y, int p_X)
+{
+  if (!m_Enabled || (p_Y != m_Y) || m_DrawnStr.empty()) return "";
+
+  // items are drawn after one leading space, joined by " | "
+  static const std::wstring separator = L" | ";
+  int col = m_X + 1;
+  size_t pos = 0;
+  while (pos <= m_DrawnStr.size())
+  {
+    size_t end = m_DrawnStr.find(separator, pos);
+    if (end == std::wstring::npos) end = m_DrawnStr.size();
+
+    const std::wstring item = m_DrawnStr.substr(pos, end - pos);
+    const int width = StrUtil::WStringWidth(item);
+    if ((p_X >= col) && (p_X < (col + width)))
+    {
+      auto it = HelpItemFuncs().find(item);
+      return (it != HelpItemFuncs().end()) ? it->second : "";
+    }
+
+    col += width + StrUtil::WStringWidth(separator);
+    if (end == m_DrawnStr.size()) break;
+
+    pos = end + separator.size();
+  }
+
+  return "";
 }
 
 std::string UiHelpView::GetKeyDisplay(const std::string& p_Func)

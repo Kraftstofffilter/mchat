@@ -8,6 +8,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 class UiEntryView;
 class UiHelpView;
@@ -45,6 +46,7 @@ public:
   int GetListChatIndexAt(int p_Y, int p_X);
   int GetHistoryMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment = nullptr);
   bool IsHistoryAt(int p_Y, int p_X);
+  std::string GetHelpFuncAt(int p_Y, int p_X);
   bool IsListAt(int p_Y, int p_X);
   bool IsListTopButtonAt(int p_Y, int p_X);
   bool IsListBorderAt(int p_Y, int p_X);

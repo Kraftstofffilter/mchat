@@ -58,7 +58,9 @@ void UiListView::Draw()
 
   const bool emojiEnabled = m_Model->GetEmojiEnabledLocked();
   std::vector<std::string> names;
+  std::vector<std::wstring> protocols;
   std::vector<bool> unreads;
+  static const bool showProtocol = UiConfig::GetBool("list_show_protocol");
   for (auto& chatPair : p_ChatVec)
   {
     const std::string& name = m_Model->GetContactListNameLocked(chatPair.first, chatPair.second, true /*p_AllowId*/,
@@ -66,6 +68,17 @@ void UiListView::Draw()
     bool isUnread = m_Model->GetChatIsUnreadLocked(chatPair.first, chatPair.second);
     names.push_back(name);
     unreads.push_back(isUnread);
+    if (showProtocol)
+    {
+      // profile ids look like WhatsAppMd_+123 or Telegram_+123
+      std::string protocol = chatPair.first.substr(0, chatPair.first.find('_'));
+      if (protocol.rfind("WhatsApp", 0) == 0) protocol = "WhatsApp";
+      protocols.push_back(StrUtil::ToWString(" @" + protocol));
+    }
+    else
+    {
+      protocols.push_back(L"");
+    }
   }
 
   werase(m_PaddedWin);
@@ -114,8 +127,18 @@ void UiListView::Draw()
         name = StrUtil::Textize(name);
       }
 
+      // name shortened so the protocol tag and unread mark stay visible
+      static const std::wstring wunreadMark = StrUtil::ToWString(" " + UiConfig::GetStr("unread_indicator"));
+      const std::wstring& wprotocol = protocols[i];
+      const int reserved = StrUtil::WStringWidth(wprotocol) + (unreads[i] ? StrUtil::WStringWidth(wunreadMark) : 0);
+      const int nameW = std::max(m_PaddedW - reserved, 1);
       std::wstring wname = StrUtil::ToWString(name).substr(0, m_PaddedW);
-      wname = StrUtil::TrimPadWString(wname, m_PaddedW);
+      if (StrUtil::WStringWidth(wname) > nameW)
+      {
+        wname = StrUtil::TrimPadWString(wname, nameW);
+      }
+
+      wname = StrUtil::TrimPadWString(wname + wprotocol, m_PaddedW);
 
       if (unreads[i])
       {

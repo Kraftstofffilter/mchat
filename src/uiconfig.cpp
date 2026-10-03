@@ -53,6 +53,7 @@ void UiConfig::Init()
     { "link_open_command", "" },
     { "list_enabled", "1" },
     { "list_width", "14" },
+    { "list_show_protocol", "0" },
     { "thumbnail_command", "" },
     { "thumbnail_rows", "8" },
     { "mouse_enabled", "1" },

@@ -667,6 +667,13 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
   }
 }
 
+std::string UiModel::Impl::GetHelpFuncAt(const MEVENT& p_Event)
+{
+  if (!(p_Event.bstate & BUTTON1_PRESSED) || (p_Event.bstate & REPORT_MOUSE_POSITION)) return "";
+
+  return m_View->GetHelpFuncAt(p_Event.y, p_Event.x);
+}
+
 void UiModel::Impl::OnMouseSelectChat(int p_ChatIndex)
 {
   AnyUserKeyInput();
@@ -4759,8 +4766,25 @@ void UiModel::KeyHandler(wint_t p_Key)
 
   if (p_Key == keyMouse)
   {
-    std::unique_lock<owned_mutex> lock(m_ModelMutex);
-    GetImpl().OnMouse(UiController::GetMouseEvent());
+    // a click on a help bar item acts as its key
+    std::string helpFunc;
+    {
+      std::unique_lock<owned_mutex> lock(m_ModelMutex);
+      helpFunc = GetImpl().GetHelpFuncAt(UiController::GetMouseEvent());
+      if (helpFunc.empty())
+      {
+        GetImpl().OnMouse(UiController::GetMouseEvent());
+      }
+    }
+
+    if (!helpFunc.empty())
+    {
+      const wint_t helpKey = UiKeyConfig::GetKey(helpFunc);
+      if ((helpKey != 0) && (helpKey != keyMouse))
+      {
+        KeyHandler(helpKey);
+      }
+    }
   }
   else if (p_Key == keyTerminalResize)
   {

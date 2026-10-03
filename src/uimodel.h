@@ -49,6 +49,7 @@ private:
 
     void OnKeyNextChat();
     void OnMouse(const MEVENT& p_Event);
+    std::string GetHelpFuncAt(const MEVENT& p_Event);
     void OnMouseSelectChat(int p_ChatIndex);
     void OnMouseScrollHistory(bool p_Up);
     void OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachment);

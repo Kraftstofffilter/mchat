@@ -262,6 +262,11 @@ void UiView::SetListWidth(int p_Width)
   m_ListWidth = std::min(std::max(p_Width, 8), std::max(m_UiScreen->W() - 20, 8));
 }
 
+std::string UiView::GetHelpFuncAt(int p_Y, int p_X)
+{
+  return m_UiHelpView ? m_UiHelpView->GetFuncAt(p_Y, p_X) : "";
+}
+
 bool UiView::IsHistoryAt(int p_Y, int p_X)
 {
   return m_UiHistoryView && m_UiHistoryView->Contains(p_Y, p_X);

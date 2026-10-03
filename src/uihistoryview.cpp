@@ -301,21 +301,67 @@ void UiHistoryView::Draw()
       // (marker U+0002, drawn as a gutter without inline formatting)
       if (messageFormatting)
       {
+        // a fence may share its line with code: "```code" opens a block
+        // (unless the rest is only a language name like "bash") and
+        // "code```" closes it
         bool inBlock = false;
         std::vector<std::wstring> blockLines;
-        for (const std::wstring& wline : wlines)
+        auto isLanguageTag = [](const std::wstring& p_Str)
         {
-          const size_t first = wline.find_first_not_of(L' ');
-          const bool isFence = (first != std::wstring::npos) && (wline.compare(first, 3, L"```") == 0) &&
-            ((wline.find(L"```", first + 3) == std::wstring::npos) || !inBlock);
-          const bool isInlineCode = isFence && !inBlock && (wline.find(L"```", first + 3) != std::wstring::npos);
-          if (isFence && !isInlineCode)
+          if (p_Str.empty()) return true;
+
+          for (wchar_t ch : p_Str)
           {
-            inBlock = !inBlock;
-            continue;
+            if (!iswalnum(ch) && (ch != L'_') && (ch != L'-') && (ch != L'+')) return false;
           }
 
-          blockLines.push_back(inBlock ? (L"\u0002" + wline) : wline);
+          return true;
+        };
+
+        for (const std::wstring& wline : wlines)
+        {
+          if (!inBlock)
+          {
+            const size_t first = wline.find_first_not_of(L' ');
+            if ((first != std::wstring::npos) && (wline.compare(first, 3, L"```") == 0))
+            {
+              std::wstring rest = wline.substr(first + 3);
+              if (rest.find(L"```") != std::wstring::npos)
+              {
+                blockLines.push_back(wline); // inline ```code```
+                continue;
+              }
+
+              inBlock = true;
+              const size_t restEnd = rest.find_last_not_of(L' ');
+              rest = (restEnd == std::wstring::npos) ? std::wstring() : rest.substr(0, restEnd + 1);
+              if (!isLanguageTag(rest))
+              {
+                blockLines.push_back(L"\u0002" + rest);
+              }
+
+              continue;
+            }
+
+            blockLines.push_back(wline);
+          }
+          else
+          {
+            const size_t last = wline.find_last_not_of(L' ');
+            if ((last != std::wstring::npos) && (last >= 2) && (wline.compare(last - 2, 3, L"```") == 0))
+            {
+              const std::wstring code = wline.substr(0, last - 2);
+              if (code.find_first_not_of(L' ') != std::wstring::npos)
+              {
+                blockLines.push_back(L"\u0002" + code);
+              }
+
+              inBlock = false;
+              continue;
+            }
+
+            blockLines.push_back(L"\u0002" + wline);
+          }
         }
 
         wlines.swap(blockLines);
@@ -575,9 +621,8 @@ void UiHistoryView::Draw()
       static const bool messageFormatting = UiConfig::GetBool("message_formatting");
       if (isCodeBlock)
       {
-        static int colorPairTextQuotedCode = UiColorConfig::GetColorPair("history_text_quoted_color");
         const std::wstring gutter = L"\u2502 ";
-        wattrset(m_PaddedWin, attributeTextNormal | colorPairTextQuotedCode);
+        wattrset(m_PaddedWin, attributeText | colorPairText);
         mvwaddnwstr(m_PaddedWin, y, 0, gutter.c_str(), gutter.size());
         wattrset(m_PaddedWin, attributeText | colorPairText);
         const std::wstring code = StrUtil::TrimPadWString(wline->substr(1), std::max(m_PaddedW - 2, 0));

@@ -38,4 +38,15 @@ private:
   // per padded row: offset of the message drawn there (-1 if none), and
   // whether the row is its attachment line
   std::vector<std::pair<int, bool>> m_RowHits;
+
+  // attachment lines drawn this pass that get an OSC 8 hyperlink
+  struct LinkRow
+  {
+    int y = 0;
+    std::string url;
+    std::wstring text;
+    bool selected = false;
+  };
+  std::vector<LinkRow> m_LinkRows;
+  void EmitLinks();
 };

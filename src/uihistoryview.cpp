@@ -144,6 +144,7 @@ void UiHistoryView::Draw()
 
   m_HistoryShowCount = 0;
   m_RowHits.assign(std::max(m_PaddedH, 0), std::make_pair(-1, false));
+  m_LinkRows.clear();
   int drawMessageOffset = messageOffset;
 
   bool firstMessage = true;
@@ -232,6 +233,7 @@ void UiHistoryView::Draw()
     }
 
     // File attachment
+    std::string attachmentLink;
     if (!msg.fileInfo.empty())
     {
       FileInfo fileInfo = ProtocolUtil::FileInfoFromHex(msg.fileInfo);
@@ -299,12 +301,8 @@ void UiHistoryView::Draw()
           }
         }
 
-        const std::string link = GetAttachmentLink(fileInfo.filePath);
-        if (!link.empty())
-        {
-          // own line, so the URL stays whole and selectable as one token
-          wlines.insert(wlines.begin(), StrUtil::ToWString("  " + link));
-        }
+        // the file name line becomes an OSC 8 hyperlink (see EmitLinks)
+        attachmentLink = GetAttachmentLink(fileInfo.filePath);
       }
 
       wlines.insert(wlines.begin(), fileStr);
@@ -436,6 +434,15 @@ void UiHistoryView::Draw()
       const std::wstring wdisp = isReaction ? *wline : StrUtil::TrimPadWString(*wline, m_PaddedW);
       mvwaddnwstr(m_PaddedWin, y, 0, wdisp.c_str(), std::min((int)wdisp.size(), m_PaddedW));
       m_RowHits[y] = std::make_pair(drawMessageOffset, isAttachment || isAttachmentLink);
+      if (isAttachment && !attachmentLink.empty())
+      {
+        LinkRow linkRow;
+        linkRow.y = y;
+        linkRow.url = attachmentLink;
+        linkRow.text = StrUtil::TrimPadWString(*wline, std::min(StrUtil::WStringWidth(*wline), m_PaddedW));
+        linkRow.selected = isSelectedMessage;
+        m_LinkRows.push_back(linkRow);
+      }
 
       if (isAttachment)
       {
@@ -533,6 +540,43 @@ void UiHistoryView::Draw()
   }
 
   wrefresh(m_PaddedWin);
+  EmitLinks();
+}
+
+void UiHistoryView::EmitLinks()
+{
+  // curses has no hyperlink support: after the refresh, rewrite each linked
+  // attachment line with the same text inside an OSC 8 hyperlink, saving and
+  // restoring cursor and attributes (DECSC/DECRC) around it. Curses never
+  // learns about it; when it later redraws those cells the link goes away,
+  // and the next history draw adds it again.
+  if (m_LinkRows.empty()) return;
+
+  static int colorPairTextAttachment = UiColorConfig::GetColorPair("history_text_attachment_color");
+  int fg = -1;
+  int bg = -1;
+  extended_pair_content(colorPairTextAttachment, &fg, &bg);
+
+  const int hpad = (m_X == 0) ? 0 : 1;
+  std::string out;
+  for (const LinkRow& linkRow : m_LinkRows)
+  {
+    std::string sgr = "\033[0m";
+    if (linkRow.selected) sgr += "\033[7m";
+    if (fg >= 0) sgr += "\033[38;5;" + std::to_string(fg) + "m";
+    if (bg >= 0) sgr += "\033[48;5;" + std::to_string(bg) + "m";
+
+    out += "\0337";
+    out += "\033[" + std::to_string(m_Y + 1 + linkRow.y + 1) + ";" + std::to_string(m_X + hpad + 1) + "H";
+    out += sgr;
+    out += "\033]8;;" + linkRow.url + "\033\\";
+    out += StrUtil::ToString(linkRow.text);
+    out += "\033]8;;\033\\";
+    out += "\0338";
+  }
+
+  fwrite(out.data(), 1, out.size(), stdout);
+  fflush(stdout);
 }
 
 int UiHistoryView::GetHistoryShowCount()

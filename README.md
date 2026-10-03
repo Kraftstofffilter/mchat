@@ -1,14 +1,149 @@
-nchat
+mchat
 =====
 
-| **Linux** | **Mac** |
-|-----------|---------|
-| [![Linux](https://github.com/d99kris/nchat/workflows/Linux/badge.svg)](https://github.com/d99kris/nchat/actions?query=workflow%3ALinux) | [![macOS](https://github.com/d99kris/nchat/workflows/macOS/badge.svg)](https://github.com/d99kris/nchat/actions?query=workflow%3AmacOS) |
+mchat is a fork of [nchat](https://github.com/d99kris/nchat), the
+terminal-based messaging client for Telegram, WhatsApp and Signal, made to be
+used with the mouse inside a terminal multiplexer such as
+[herdr](https://herdr.dev) on a remote machine. It adds mouse support,
+clickable attachment links, inline picture previews, rendered message
+formatting and a few chat list improvements. Everything nchat does still
+works the same way from the keyboard.
 
-nchat is a terminal-based multi-protocol messaging client for Linux and macOS
-with support for Telegram, WhatsApp and Signal.
+mchat keeps nchat's program internals: the built binary is called `nchat`
+(install it under the name `mchat`), and the configuration stays in
+`~/.config/nchat`, so an existing nchat setup and its logins carry over.
+The rest of this README after the mchat sections is nchat's own
+documentation and applies unchanged.
 
 ![screenshot nchat](/doc/screenshot-nchat.png)
+
+
+mchat Features
+--------------
+Mouse:
+- Click a chat in the list to open it; the mouse wheel scrolls the chat list.
+- A **▲ top** button appears at the top of the chat list once it is scrolled
+  down, and returns to the first chats.
+- Drag the border between the chat list and the messages to resize the list.
+- The mouse wheel scrolls the message history without selecting messages.
+- Click a message to select it and copy its text to the clipboard (OSC 52,
+  forwarded by herdr and most terminals). Dragging over message text selects
+  and copies a range where the terminal reports drag motion.
+- Click items in the bottom help bar to run them, as if the key was pressed.
+- Clicking does not scroll the view under the pointer: the chat list and the
+  message history keep their position.
+
+Attachments:
+- Downloaded attachments are published as links, served for example by
+  `tailscale serve` on a private network. The file name becomes an OSC 8
+  hyperlink (in herdr: Ctrl+click opens it in the browser).
+- Attachments show their state: `⬇` not downloaded (click to download), `⇄`
+  downloading, `✗` failed, `🔗` downloaded with a working link, which is also
+  drawn in its own color.
+- Pictures get an inline preview under the attachment line, drawn with colored
+  half blocks so it appears in any 256-color terminal.
+- A full-screen picture viewer (`utils/mchat/mchat-preview.py`) can be set as
+  the attachment open command; it uses the Kitty graphics protocol where
+  available and colored blocks elsewhere.
+- A daily cleanup removes downloaded attachments, published links and
+  previews older than 30 days (`utils/mchat/mchat-cleanup.sh`).
+
+Messages and chats:
+- WhatsApp and Telegram formatting is rendered with the markers hidden:
+  `*bold*`, `_italic_`, `~strikethrough~` (dim), `` `code` ``, and fenced
+  code blocks (```` ``` ````) drawn with a gutter.
+- The chat list can tag each chat with its protocol: `@W` WhatsApp,
+  `@T` Telegram.
+- WhatsApp chats pinned on the phone are shown pinned (the chat settings are
+  fully synced at each start).
+- Emoji written with a variation selector after a narrow character (such as
+  ❤️) no longer overlap the following text.
+
+
+mchat Configuration
+-------------------
+New options in `~/.config/nchat/ui.conf` (edit while mchat is not running,
+it saves the file on exit):
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `mouse_enabled` | `1` | Mouse support. `0` restores keyboard-only behavior. |
+| `attachment_link_base` | empty | Base URL of the published attachment folder, for example `https://host.tailnet.ts.net:8451`. Empty disables attachment links. |
+| `attachment_link_dir` | `~/.local/share/mchat/files` | Folder where downloaded attachments are hard-linked (or copied) for publishing. Serve only this folder, never `~/.config/nchat`. |
+| `linked_indicator` | empty | Mark shown after attachments that have a working link, for example `🔗`. |
+| `thumbnail_command` | empty | Command that makes a preview image: `%1` source file, `%2` output PPM, `%3` rows. Empty disables previews. |
+| `thumbnail_rows` | `8` | Height of picture previews in terminal rows. |
+| `list_show_protocol` | `0` | Append `@W` / `@T` to each chat in the list. |
+| `message_formatting` | `0` | Render bold, italic, strikethrough, code and code blocks. |
+
+New option in `~/.config/nchat/color.conf`:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `history_text_attachment_linked_color_fg` / `_bg` | bright cyan / default | Color of attachments that have a working link. |
+
+Example `ui.conf` lines for the setup this fork was made for:
+
+    attachment_link_base=https://myhost.mytailnet.ts.net:8451
+    attachment_link_dir=~/.local/share/mchat/files
+    attachment_open_command=~/mchat/utils/mchat/mchat-preview.py '%1'
+    thumbnail_command=~/mchat/utils/mchat/mchat-preview.py --thumb '%1' '%2' %3
+    thumbnail_rows=8
+    linked_indicator=🔗
+    downloadable_indicator=⬇
+    list_show_protocol=1
+    message_formatting=1
+
+Publishing the attachment folder on a Tailscale network (needs root once):
+
+    sudo tailscale serve --bg --https=8451 ~/.local/share/mchat/files
+
+The picture viewer and previews need Python 3 with
+[Pillow](https://python-pillow.org).
+
+
+Building mchat
+--------------
+mchat is built as a static binary in a container with the upstream release
+script, so the host needs only Docker:
+
+    utils/dist/build-linux.sh musl
+    install -m 755 dist/nchat-linux-x86_64-musl/bin/nchat ~/.local/bin/mchat
+
+On a host with little memory, cap the build container and use clang, which
+needs about 1.5 GB per compile job instead of 3.5 GB with g++; Signal does not
+build with clang and can be left out:
+
+    JOBS=1 NCHAT_DIST_DOCKER_ARGS="--memory 2500m --memory-swap 2500m \
+      -e CC=clang -e CXX=clang++ -e NCHAT_HAS_SIGNAL=OFF" \
+      utils/dist/build-linux.sh musl
+
+The first build compiles TDLib and takes about one to two hours on one core;
+later builds reuse the cache (`~/.cache/nchat-dist`, `build-dist/`) and take a
+few minutes. Add `NCHAT_DIST_SKIP_IMAGE_BUILD=1` to reuse the build image.
+
+Daily attachment cleanup as a systemd user timer:
+
+    cp utils/mchat/systemd/mchat-cleanup.{service,timer} ~/.config/systemd/user/
+    systemctl --user daemon-reload
+    systemctl --user enable --now mchat-cleanup.timer
+
+The service runs `%h/Workspace/mchat/utils/mchat/mchat-cleanup.sh`; adjust the
+path to the clone. `MCHAT_CLEANUP_DAYS` changes the 30-day retention.
+
+
+Updating from nchat
+-------------------
+The fork tracks upstream nchat in the `upstream` remote; mchat's changes live
+on the `modern` branch:
+
+    git fetch upstream --tags
+    git rebase <new-nchat-tag>
+
+
+nchat
+=====
+The sections below are nchat's documentation.
 
 Features
 --------
@@ -1395,7 +1530,8 @@ to update to latest (or a specific) version of these libraries. Example usages:
 
 License
 =======
-Source is distributed under the [MIT license](/LICENSE).
+Source is distributed under the [MIT license](/LICENSE). mchat's changes are
+under the same license; nchat is copyright Kristofer Berggren.
 
 Binaries are distributed under the [GNU AGPL v3 license](/LICENSE.AGPL-3.0),
 or the [GNU GPL v3 license](/LICENSE.GPL-3.0) if Signal support is disabled.
@@ -1404,4 +1540,4 @@ or the [GNU GPL v3 license](/LICENSE.GPL-3.0) if Signal support is disabled.
 Keywords
 ========
 command line, console-based, linux, macos, chat client, ncurses, telegram,
-terminal-based, tui.
+terminal-based, tui, whatsapp, mouse, herdr.

@@ -24,7 +24,8 @@ Mouse:
 - Click a chat in the list to open it; the mouse wheel scrolls the chat list.
 - A **▲ top** button appears at the top of the chat list once it is scrolled
   down, and returns to the first chats.
-- Drag the border between the chat list and the messages to resize the list.
+- Resize the chat list with its border: press on the border, then click where
+  it should go (dragging works where the terminal reports drag motion).
 - The mouse wheel scrolls the message history without selecting messages.
 - Click a message to select it and copy its text to the clipboard (OSC 52,
   forwarded by herdr and most terminals). Dragging over message text selects
@@ -47,8 +48,10 @@ Attachments:
   pressing Alt-k asks for confirmation and deletes them; session data is never
   touched. Deleted attachments show `⬇` again and download anew on click.
 - A full-screen picture viewer (`utils/mchat/mchat-preview.py`) can be set as
-  the attachment open command; it uses the Kitty graphics protocol where
-  available and colored blocks elsewhere.
+  the attachment open command, so the open key (Ctrl-v by default) shows the
+  selected picture; it uses the Kitty graphics protocol where available and
+  colored blocks elsewhere. Clicking an attachment only selects (and
+  downloads) it.
 
 Messages and chats:
 - WhatsApp and Telegram formatting is rendered with the markers hidden:
@@ -78,6 +81,12 @@ it saves the file on exit):
 | `list_show_protocol` | `0` | Append `@W` / `@T` to each chat in the list. |
 | `message_formatting` | `0` | Render bold, italic, strikethrough, code and code blocks. |
 
+New key in `~/.config/nchat/key.conf`:
+
+| Function | Default | Description |
+|----------|---------|-------------|
+| `clean_files` | Alt-k (`\33\153`) | Delete downloaded files after confirmation. |
+
 New option in `~/.config/nchat/color.conf`:
 
 | Option | Default | Description |
@@ -102,6 +111,11 @@ Publishing the attachment folder on a Tailscale network (needs root once):
 
 The picture viewer and previews need Python 3 with
 [Pillow](https://python-pillow.org).
+
+Notes for herdr (and similar multiplexers): herdr opens hyperlinks only on
+Ctrl+click from the attached terminal, so a plain click cannot open a link,
+and it does not forward drag motion, hence the two-click border resize and
+copy-by-click. OSC 52 (clipboard) and OSC 8 (hyperlinks) pass through.
 
 
 Building mchat

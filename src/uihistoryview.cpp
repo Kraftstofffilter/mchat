@@ -140,7 +140,6 @@ void UiHistoryView::Draw()
 
   werase(m_PaddedWin);
   wbkgd(m_PaddedWin, attributeTextNormal | colorPairTextRecv | ' ');
-  const int hpadRight = (m_X == 0) ? 0 : 1;
 
   m_HistoryShowCount = 0;
   m_RowHits.assign(std::max(m_PaddedH, 0), std::make_pair(-1, false));
@@ -504,18 +503,6 @@ void UiHistoryView::Draw()
 
     firstMessage = false;
     ++drawMessageOffset;
-  }
-
-  // scroll bar in the right padding column; messages are counted from the
-  // newest (bottom), so the first shown from the top is the oldest drawn
-  if (hpadRight > 0)
-  {
-    const int total = (int)messageVec.size();
-    const int shown = drawMessageOffset - messageOffset;
-    wattron(m_Win, attributeTextNormal | colorPairTextRecv);
-    DrawScrollBar(m_Win, 1, m_W - 1, m_PaddedH, total, shown, std::max(total - drawMessageOffset, 0));
-    wattroff(m_Win, attributeTextNormal | colorPairTextRecv);
-    wnoutrefresh(m_Win);
   }
 
   wrefresh(m_PaddedWin);

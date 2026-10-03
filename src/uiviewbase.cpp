@@ -7,6 +7,8 @@
 
 #include "uiviewbase.h"
 
+#include <algorithm>
+
 UiViewBase::UiViewBase(const UiViewParams& p_Params)
   : m_X(p_Params.x)
   , m_Y(p_Params.y)
@@ -52,4 +54,29 @@ int UiViewBase::Y()
 void UiViewBase::SetDirty(bool p_Dirty)
 {
   m_Dirty = p_Dirty;
+}
+
+// Draws a vertical scroll bar in column p_X of p_Win, rows p_Y..p_Y+p_H-1.
+// p_Total items, p_Shown visible, p_FirstShown = index of the first visible
+// item counted from the top. Draws nothing when everything fits.
+void UiViewBase::DrawScrollBar(WINDOW* p_Win, int p_Y, int p_X, int p_H, int p_Total, int p_Shown, int p_FirstShown)
+{
+  if ((p_Win == nullptr) || (p_H <= 0)) return;
+
+  for (int i = 0; i < p_H; ++i)
+  {
+    mvwaddnwstr(p_Win, p_Y + i, p_X, L" ", 1);
+  }
+
+  if ((p_Total <= 0) || (p_Shown >= p_Total)) return;
+
+  const int thumbH = std::max(1, (p_H * p_Shown) / p_Total);
+  int thumbY = (p_H * p_FirstShown) / p_Total;
+  thumbY = std::min(std::max(thumbY, 0), p_H - thumbH);
+
+  for (int i = 0; i < p_H; ++i)
+  {
+    const bool isThumb = (i >= thumbY) && (i < (thumbY + thumbH));
+    mvwaddnwstr(p_Win, p_Y + i, p_X, isThumb ? L"\u2588" : L"\u2502", 1);
+  }
 }

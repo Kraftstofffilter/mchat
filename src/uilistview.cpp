@@ -132,6 +132,13 @@ void UiListView::Draw()
   }
 
   wattroff(m_PaddedWin, attribute | colorPair);
+
+  // scroll bar in the right padding column
+  wattron(m_Win, attribute | colorPair);
+  DrawScrollBar(m_Win, 1, m_W - 1, m_PaddedH, m_DrawCount, m_PaddedH, m_DrawOffset);
+  wattroff(m_Win, attribute | colorPair);
+  wnoutrefresh(m_Win);
+
   wrefresh(m_PaddedWin);
 }
 

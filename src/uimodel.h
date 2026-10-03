@@ -269,6 +269,8 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, int>> m_MessageOffset;
     // view start while no message is selected, moved by the mouse wheel
     std::unordered_map<std::string, std::unordered_map<std::string, int>> m_ScrollViewStart;
+    // list border being dragged to resize the chat list
+    bool m_MouseDragBorder = false;
     // mouse selection keeps the view: {view start, selected message offset}
     std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> m_MouseViewAnchor;
     std::unordered_map<std::string, std::unordered_map<std::string, std::stack<int>>> m_MessageOffsetStack;

@@ -220,6 +220,45 @@ int UiView::GetHistoryMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment /*=
   return m_UiHistoryView ? m_UiHistoryView->GetMessageOffsetAt(p_Y, p_X, p_IsAttachment) : -1;
 }
 
+bool UiView::IsListAt(int p_Y, int p_X)
+{
+  return m_UiListView && m_ListEnabled && (m_ListWidth > 0) && (p_X >= m_UiListView->X()) &&
+         (p_X < (m_UiListView->X() + m_UiListView->W())) && (p_Y >= m_UiListView->Y()) &&
+         (p_Y < (m_UiListView->Y() + m_UiListView->H()));
+}
+
+bool UiView::IsListTopButtonAt(int p_Y, int p_X)
+{
+  return m_UiListView && m_UiListView->IsTopButtonAt(p_Y, p_X);
+}
+
+bool UiView::IsListBorderAt(int p_Y, int p_X)
+{
+  return m_UiListBorderView && m_ListEnabled && (m_ListWidth > 0) && (p_X == m_UiListBorderView->X()) &&
+         (p_Y >= m_UiListBorderView->Y()) && (p_Y < (m_UiListBorderView->Y() + m_UiListBorderView->H()));
+}
+
+void UiView::ListScrollBy(int p_Rows)
+{
+  if (m_UiListView) m_UiListView->ScrollBy(p_Rows);
+}
+
+void UiView::ListScrollToTop()
+{
+  if (m_UiListView) m_UiListView->ScrollToTop();
+}
+
+int UiView::GetListWidth()
+{
+  return m_ListWidth;
+}
+
+void UiView::SetListWidth(int p_Width)
+{
+  // keep room for the message history
+  m_ListWidth = std::min(std::max(p_Width, 8), std::max(m_UiScreen->W() - 20, 8));
+}
+
 bool UiView::IsHistoryAt(int p_Y, int p_X)
 {
   return m_UiHistoryView && m_UiHistoryView->Contains(p_Y, p_X);

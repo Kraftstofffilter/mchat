@@ -86,6 +86,16 @@ void UiListView::Draw()
     {
       offset = m_DrawOffset;
     }
+
+    // mouse scrolling may move the selected chat out of view
+    if ((m_ManualOffset >= 0) && (m_ManualIndex == index))
+    {
+      offset = std::min(m_ManualOffset, std::max(0, count - height));
+    }
+    else
+    {
+      m_ManualOffset = -1;
+    }
     int last = std::min((height + offset), count);
     m_DrawOffset = offset;
     m_DrawCount = count;
@@ -132,7 +142,43 @@ void UiListView::Draw()
   }
 
   wattroff(m_PaddedWin, attribute | colorPair);
+
+  // top padding row: "top" button while scrolled down
+  {
+    static const std::wstring topLabel = L"\u25B2 top";
+    std::wstring row(std::max(m_W, 0), L' ');
+    if ((m_DrawOffset > 0) && ((int)topLabel.size() <= m_W))
+    {
+      row.replace((m_W - topLabel.size()) / 2, topLabel.size(), topLabel);
+    }
+
+    wattron(m_Win, attribute | colorPair);
+    mvwaddnwstr(m_Win, 0, 0, row.c_str(), row.size());
+    wattroff(m_Win, attribute | colorPair);
+    wnoutrefresh(m_Win);
+  }
+
   wrefresh(m_PaddedWin);
+}
+
+bool UiListView::IsTopButtonAt(int p_Y, int p_X)
+{
+  return m_Enabled && (m_DrawOffset > 0) && (p_Y == m_Y) && (p_X >= m_X) && (p_X < (m_X + m_W));
+}
+
+void UiListView::ScrollBy(int p_Rows)
+{
+  const int maxOffset = std::max(0, m_DrawCount - m_PaddedH);
+  m_ManualOffset = std::min(std::max(m_DrawOffset + p_Rows, 0), maxOffset);
+  m_ManualIndex = std::max(0, m_Model->GetCurrentChatIndexLocked());
+  SetDirty(true);
+}
+
+void UiListView::ScrollToTop()
+{
+  m_ManualOffset = 0;
+  m_ManualIndex = std::max(0, m_Model->GetCurrentChatIndexLocked());
+  SetDirty(true);
 }
 
 int UiListView::GetChatIndexAt(int p_Y, int p_X)

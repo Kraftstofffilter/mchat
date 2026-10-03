@@ -77,7 +77,9 @@ void UiController::SetMouseEnabled(bool p_Enabled)
   mousemask(0, nullptr);
   if (p_Enabled)
   {
-    mousemask(BUTTON1_PRESSED | BUTTON4_PRESSED | BUTTON5_PRESSED, nullptr);
+    // release and motion reports are needed for dragging the list border
+    mousemask(BUTTON1_PRESSED | BUTTON1_RELEASED | BUTTON4_PRESSED | BUTTON5_PRESSED | REPORT_MOUSE_POSITION,
+              nullptr);
     mouseinterval(0);
   }
 }

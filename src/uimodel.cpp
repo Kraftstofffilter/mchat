@@ -593,13 +593,50 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
   const bool isWheelUp = (p_Event.bstate & BUTTON4_PRESSED);
   const bool isWheelDown = (p_Event.bstate & BUTTON5_PRESSED);
   const bool isClick = (p_Event.bstate & BUTTON1_PRESSED);
+  const bool isRelease = (p_Event.bstate & BUTTON1_RELEASED);
+  const bool isMotion = (p_Event.bstate & REPORT_MOUSE_POSITION);
   const int chatIndex = m_View->GetListChatIndexAt(p_Event.y, p_Event.x);
+
+  // dragging the list border resizes the chat list
+  if (m_MouseDragBorder)
+  {
+    if (isMotion || isClick)
+    {
+      const int width = p_Event.x;
+      if (width != m_View->GetListWidth())
+      {
+        m_View->SetListWidth(width);
+        ReinitView();
+      }
+    }
+
+    if (isRelease)
+    {
+      m_MouseDragBorder = false;
+    }
+
+    return;
+  }
+
+  if (isRelease || isMotion) return;
+
+  if (isClick && m_View->IsListBorderAt(p_Event.y, p_Event.x))
+  {
+    m_MouseDragBorder = true;
+    return;
+  }
+
+  if (isClick && m_View->IsListTopButtonAt(p_Event.y, p_Event.x))
+  {
+    m_View->ListScrollToTop();
+    return;
+  }
 
   if (isWheelUp || isWheelDown)
   {
-    if (chatIndex >= 0)
+    if (m_View->IsListAt(p_Event.y, p_Event.x))
     {
-      isWheelUp ? OnKeyPrevChat() : OnKeyNextChat();
+      m_View->ListScrollBy(isWheelUp ? -3 : 3);
     }
     else if (m_View->IsHistoryAt(p_Event.y, p_Event.x))
     {

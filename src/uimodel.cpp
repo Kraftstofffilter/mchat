@@ -697,7 +697,10 @@ void UiModel::Impl::OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachm
   RequestMessagesCurrentChat();
   UpdateHistory();
 
-  if (p_OpenAttachment)
+  // with attachment links, selecting downloads the file and shows its link;
+  // otherwise open it as the open key would
+  static const bool hasAttachmentLinks = !UiConfig::GetStr("attachment_link_base").empty();
+  if (p_OpenAttachment && !hasAttachmentLinks)
   {
     OnKeyOpenAttachment();
   }

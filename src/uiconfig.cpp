@@ -19,6 +19,8 @@ void UiConfig::Init()
   const std::map<std::string, std::string> defaultConfig =
   {
     { "attachment_indicator", "\xF0\x9F\x93\x8E" },
+    { "attachment_link_base", "" },
+    { "attachment_link_dir", "~/.local/share/mchat/files" },
     { "attachment_open_command", "" },
     { "auto_compose_command", "" },
     { "auto_compose_enabled", "0" },

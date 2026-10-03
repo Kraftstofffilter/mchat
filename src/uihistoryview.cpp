@@ -7,6 +7,12 @@
 
 #include "uihistoryview.h"
 
+#include <unistd.h>
+
+#include <cstdio>
+#include <functional>
+#include <unordered_map>
+
 #include "appconfig.h"
 #include "apputil.h"
 #include "fileutil.h"
@@ -17,6 +23,55 @@
 #include "uicolorconfig.h"
 #include "uiconfig.h"
 #include "uimodel.h"
+
+// Publishes a downloaded attachment under attachment_link_dir (hard link,
+// or copy across filesystems) and returns its URL under attachment_link_base.
+// Returns an empty string when links are disabled or the file is missing.
+static std::string GetAttachmentLink(const std::string& p_FilePath)
+{
+  static const std::string linkBase = UiConfig::GetStr("attachment_link_base");
+  if (linkBase.empty() || p_FilePath.empty()) return "";
+
+  static std::unordered_map<std::string, std::string> s_Links;
+  auto it = s_Links.find(p_FilePath);
+  if (it != s_Links.end()) return it->second;
+
+  if (!FileUtil::Exists(p_FilePath)) return "";
+
+  static const std::string linkDir = FileUtil::ExpandPath(UiConfig::GetStr("attachment_link_dir"));
+  char id[9];
+  snprintf(id, sizeof(id), "%08x", (unsigned)(std::hash<std::string>{}(p_FilePath) & 0xffffffff));
+  const std::string name = FileUtil::BaseName(p_FilePath);
+  const std::string dir = linkDir + "/" + id;
+  const std::string dstPath = dir + "/" + name;
+  if (!FileUtil::Exists(dstPath))
+  {
+    FileUtil::MkDir(dir);
+    if (link(p_FilePath.c_str(), dstPath.c_str()) != 0)
+    {
+      FileUtil::CopyFile(p_FilePath, dstPath);
+    }
+  }
+
+  std::string encodedName;
+  for (unsigned char c : name)
+  {
+    if (isalnum(c) || (c == '-') || (c == '_') || (c == '.') || (c == '~'))
+    {
+      encodedName += c;
+    }
+    else
+    {
+      char hex[4];
+      snprintf(hex, sizeof(hex), "%%%02X", c);
+      encodedName += hex;
+    }
+  }
+
+  const std::string url = linkBase + "/" + id + "/" + encodedName;
+  s_Links[p_FilePath] = url;
+  return url;
+}
 
 UiHistoryView::UiHistoryView(const UiViewParams& p_Params)
   : UiViewBase(p_Params)
@@ -224,6 +279,16 @@ void UiHistoryView::Draw()
       }
 
       std::wstring fileStr = attachmentIndicator + StrUtil::ToWString(fileName + fileStatus);
+      if (fileInfo.fileStatus == FileStatusDownloaded)
+      {
+        const std::string link = GetAttachmentLink(fileInfo.filePath);
+        if (!link.empty())
+        {
+          // own line, so the URL stays whole and selectable as one token
+          wlines.insert(wlines.begin(), StrUtil::ToWString("  " + link));
+        }
+      }
+
       wlines.insert(wlines.begin(), fileStr);
     }
 

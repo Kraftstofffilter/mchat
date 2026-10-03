@@ -1,6 +1,0 @@
-[Unit]
-Description=Delete mchat attachments older than 30 days
-
-[Service]
-Type=oneshot
-ExecStart=%h/Workspace/mchat/utils/mchat/mchat-cleanup.sh

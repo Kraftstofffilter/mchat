@@ -45,8 +45,6 @@ Attachments:
 - A full-screen picture viewer (`utils/mchat/mchat-preview.py`) can be set as
   the attachment open command; it uses the Kitty graphics protocol where
   available and colored blocks elsewhere.
-- A daily cleanup removes downloaded attachments, published links and
-  previews older than 30 days (`utils/mchat/mchat-cleanup.sh`).
 
 Messages and chats:
 - WhatsApp and Telegram formatting is rendered with the markers hidden:
@@ -121,15 +119,6 @@ build with clang and can be left out:
 The first build compiles TDLib and takes about one to two hours on one core;
 later builds reuse the cache (`~/.cache/nchat-dist`, `build-dist/`) and take a
 few minutes. Add `NCHAT_DIST_SKIP_IMAGE_BUILD=1` to reuse the build image.
-
-Daily attachment cleanup as a systemd user timer:
-
-    cp utils/mchat/systemd/mchat-cleanup.{service,timer} ~/.config/systemd/user/
-    systemctl --user daemon-reload
-    systemctl --user enable --now mchat-cleanup.timer
-
-The service runs `%h/Workspace/mchat/utils/mchat/mchat-cleanup.sh`; adjust the
-path to the clone. `MCHAT_CLEANUP_DAYS` changes the 30-day retention.
 
 
 Updating from nchat

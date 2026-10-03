@@ -790,6 +790,7 @@ func (handler *WmEventHandler) HandleEvent(rawEvt interface{}) {
 		SetState(handler.connId, Connected)
 		CWmSetStatus(handler.connId, FlagOnline)
 		CWmClearStatus(handler.connId, FlagConnecting)
+		handler.SyncChatSettingsOnce()
 
 	case *events.Disconnected:
 		// disconnected
@@ -877,6 +878,34 @@ func (handler *WmEventHandler) HandleEvent(rawEvt interface{}) {
 	default:
 		LOG_TRACE(fmt.Sprintf("Event type not handled: %#v", rawEvt))
 	}
+}
+
+var chatSettingsSynced sync.Map
+
+// SyncChatSettingsOnce fully re-syncs the regular_low app state (pinned,
+// archived and muted chats) once per connection id and process. A device
+// linked before those settings arrived may otherwise never learn about
+// chats pinned on the phone; the sync emits events.Pin for them.
+func (handler *WmEventHandler) SyncChatSettingsOnce() {
+	if _, done := chatSettingsSynced.LoadOrStore(handler.connId, true); done {
+		return
+	}
+
+	connId := handler.connId
+	go func() {
+		client := GetClient(connId)
+		if client == nil {
+			LOG_WARNING("client is nil")
+			return
+		}
+
+		err := client.FetchAppState(context.TODO(), appstate.WAPatchRegularLow, true, false)
+		if err != nil {
+			LOG_WARNING(fmt.Sprintf("fetch regular_low app state failed %#v", err))
+		} else {
+			LOG_INFO("fetched regular_low app state")
+		}
+	}()
 }
 
 func (handler *WmEventHandler) HandleConnected() {

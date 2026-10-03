@@ -105,8 +105,6 @@ void UiModel::Impl::TerminalControlResume()
     UiController::SetMouseEnabled(true);
   }
 
-  // an external program may have cleared terminal images
-  UiImage::InvalidateTransmitted();
   UpdateHistory();
   printf("\033[?1004h"); // enable terminal focus in/out event
   fflush(stdout);

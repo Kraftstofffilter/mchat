@@ -12,9 +12,9 @@
 #   attachment_open_command=~/Workspace/mchat/utils/mchat/mchat-preview.py '%1'
 # Files that are not pictures exit at once without output.
 #
-#        mchat-preview.py --thumb <image> <out.png>
-# writes a small PNG for inline thumbnails (thumbnail_command in ui.conf):
-#   thumbnail_command=~/Workspace/mchat/utils/mchat/mchat-preview.py --thumb '%1' '%2'
+#        mchat-preview.py --thumb <image> <out.ppm> <rows>
+# writes a small PPM for inline thumbnails (thumbnail_command in ui.conf):
+#   thumbnail_command=~/Workspace/mchat/utils/mchat/mchat-preview.py --thumb '%1' '%2' %3
 
 import base64
 import io
@@ -82,12 +82,15 @@ def show_blocks(img, cols, rows):
     sys.stdout.flush()
 
 
-def make_thumbnail(src, dst):
-    # PNG thumbnail for mchat's inline previews (thumbnail_command)
-    img = ImageOps.exif_transpose(Image.open(src))
-    img.thumbnail((320, 320))
+def make_thumbnail(src, dst, rows):
+    # PPM thumbnail for mchat's inline previews (thumbnail_command): one
+    # pixel per half-block, so rows terminal rows are 2 * rows pixels high
+    img = ImageOps.exif_transpose(Image.open(src)).convert("RGB")
+    h = max(2 * rows, 2)
+    w = max(1, min(120, round(h * img.width / img.height)))
+    img = img.resize((w, h), Image.LANCZOS)
     tmp = dst + ".tmp"
-    img.convert("RGBA").save(tmp, format="PNG")
+    img.save(tmp, format="PPM")
     os.replace(tmp, dst)
     return 0
 
@@ -95,7 +98,8 @@ def make_thumbnail(src, dst):
 def main():
     if len(sys.argv) >= 4 and sys.argv[1] == "--thumb":
         try:
-            return make_thumbnail(sys.argv[2], sys.argv[3])
+            rows = int(sys.argv[4]) if len(sys.argv) >= 5 else 8
+            return make_thumbnail(sys.argv[2], sys.argv[3], rows)
         except Exception:
             return 1
 

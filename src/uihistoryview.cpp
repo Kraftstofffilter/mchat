@@ -283,17 +283,18 @@ void UiHistoryView::Draw()
       std::wstring fileStr = attachmentIndicator + StrUtil::ToWString(fileName + fileStatus);
       if (fileInfo.fileStatus == FileStatusDownloaded)
       {
-        int thumbPair = 0;
+        int thumbHandle = 0;
         int thumbCols = 0;
         int thumbRows = 0;
-        if (UiImage::GetThumbnail(fileInfo.filePath, m_PaddedW - 2, thumbPair, thumbCols, thumbRows))
+        if (UiImage::GetThumbnail(fileInfo.filePath, m_PaddedW - 2, thumbHandle, thumbCols, thumbRows))
         {
-          // marker U+0001 + color pair ahead of the text; stripped when drawn
+          // marker U+0001, thumbnail handle, row and width; drawn by UiImage
           for (int row = thumbRows - 1; row >= 0; --row)
           {
             std::wstring line = L"\u0001";
-            line += (wchar_t)thumbPair;
-            line += L"  " + UiImage::PlaceholderRow(row, thumbCols);
+            line += (wchar_t)(thumbHandle + 1);
+            line += (wchar_t)(row + 1);
+            line += (wchar_t)thumbCols;
             wlines.insert(wlines.begin(), line);
           }
         }
@@ -401,7 +402,7 @@ void UiHistoryView::Draw()
 
     for (auto wline = wlines.rbegin(); wline != wlines.rend(); ++wline)
     {
-      bool isThumbnail = !wline->empty() && (wline->at(0) == L'\u0001') && (wline->size() > 2);
+      bool isThumbnail = (wline->size() == 4) && (wline->at(0) == L'\u0001');
       bool isAttachment = (wline->rfind(attachmentIndicator, 0) == 0);
       bool isAttachmentLink = (wline->rfind(L"  https://", 0) == 0) || (wline->rfind(L"  http://", 0) == 0);
       bool isQuote = (wline->rfind(quoteIndicator, 0) == 0);
@@ -409,13 +410,7 @@ void UiHistoryView::Draw()
 
       if (isThumbnail)
       {
-        const int thumbPair = (int)wline->at(1);
-        const std::wstring wthumb = wline->substr(2);
-        // extended pair (above 255): set through wattr_set's opts argument
-        int extPair = thumbPair;
-        wattr_set(m_PaddedWin, A_NORMAL, 0, &extPair);
-        mvwaddnwstr(m_PaddedWin, y, 0, wthumb.c_str(), wthumb.size());
-        wattr_set(m_PaddedWin, A_NORMAL, 0, nullptr);
+        UiImage::DrawRow(m_PaddedWin, y, 2, (int)wline->at(1) - 1, (int)wline->at(2) - 1, (int)wline->at(3));
         m_RowHits[y] = std::make_pair(drawMessageOffset, true);
         if (--y < 0) break;
         continue;

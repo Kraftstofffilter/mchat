@@ -647,33 +647,22 @@ void UiModel::Impl::OnMouseScrollHistory(bool p_Up)
   const std::string& profileId = m_CurrentChat.first;
   const std::string& chatId = m_CurrentChat.second;
   const int messageCount = m_Messages[profileId][chatId].size();
-  int& messageOffset = m_MessageOffset[profileId][chatId];
+  if (messageCount == 0) return;
+
+  // the wheel scrolls the view without selecting (highlighting) a message
+  const int viewStart = GetHistoryViewStart(profileId, chatId);
+  if (GetSelectMessageActive())
+  {
+    SetSelectMessageActive(false);
+  }
+
+  const int newStart = p_Up ? std::min(viewStart + 1, messageCount - 1) : std::max(viewStart - 1, 0);
+  m_ScrollViewStart[profileId][chatId] = newStart;
+  m_MessageOffset[profileId][chatId] = newStart; // keyboard selection starts at the bottom of the view
 
   if (p_Up)
   {
-    if (messageCount == 0) return;
-
-    if (GetSelectMessageActive())
-    {
-      messageOffset = std::min(messageOffset + 1, messageCount - 1);
-    }
-    else
-    {
-      SetSelectMessageActive(true);
-    }
-
     RequestMessagesCurrentChat();
-  }
-  else if (GetSelectMessageActive())
-  {
-    if (messageOffset > 0)
-    {
-      messageOffset = messageOffset - 1;
-    }
-    else
-    {
-      SetSelectMessageActive(false);
-    }
   }
 
   UpdateHistory();
@@ -950,6 +939,7 @@ void UiModel::Impl::ResetMessageOffset()
   std::stack<int>& messageOffsetStack = m_MessageOffsetStack[profileId][chatId];
 
   messageOffset = 0;
+  m_ScrollViewStart[profileId][chatId] = 0;
   while (!messageOffsetStack.empty())
   {
     messageOffsetStack.pop();
@@ -3209,7 +3199,13 @@ int UiModel::Impl::GetHistoryViewStart(const std::string& p_ProfileId, const std
   // normally the selected message, but a mouse selection keeps the view where
   // it was until the selection is moved by other means
   const int messageOffset = std::max(m_MessageOffset[p_ProfileId][p_ChatId], 0);
-  if (!GetSelectMessageActive()) return messageOffset;
+  if (!GetSelectMessageActive())
+  {
+    const int messageCount = m_Messages[p_ProfileId][p_ChatId].size();
+    int& scrollStart = m_ScrollViewStart[p_ProfileId][p_ChatId];
+    scrollStart = std::min(std::max(scrollStart, 0), std::max(messageCount - 1, 0));
+    return scrollStart;
+  }
 
   auto chatIt = m_MouseViewAnchor.find(p_ProfileId);
   if (chatIt == m_MouseViewAnchor.end()) return messageOffset;
@@ -3230,6 +3226,13 @@ bool UiModel::Impl::GetSelectMessageActive()
 
 void UiModel::Impl::SetSelectMessageActive(bool p_SelectMessageActive)
 {
+  // leaving selection keeps the view where it is (no jump to the bottom)
+  if (m_SelectMessageActive && !p_SelectMessageActive && (m_CurrentChat != s_ChatNone))
+  {
+    const int viewStart = GetHistoryViewStart(m_CurrentChat.first, m_CurrentChat.second);
+    m_ScrollViewStart[m_CurrentChat.first][m_CurrentChat.second] = viewStart;
+  }
+
   m_SelectMessageActive = p_SelectMessageActive;
   SetHelpOffset(0);
   UpdateHelp();

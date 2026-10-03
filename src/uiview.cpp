@@ -7,6 +7,8 @@
 
 #include "uiview.h"
 
+#include <cstdlib>
+
 #include "log.h"
 #include "uiconfig.h"
 #include "uientryview.h"
@@ -234,7 +236,8 @@ bool UiView::IsListTopButtonAt(int p_Y, int p_X)
 
 bool UiView::IsListBorderAt(int p_Y, int p_X)
 {
-  return m_UiListBorderView && m_ListEnabled && (m_ListWidth > 0) && (p_X == m_UiListBorderView->X()) &&
+  // one column of slack on each side, the line itself is one column wide
+  return m_UiListBorderView && m_ListEnabled && (m_ListWidth > 0) && (std::abs(p_X - m_UiListBorderView->X()) <= 1) &&
          (p_Y >= m_UiListBorderView->Y()) && (p_Y < (m_UiListBorderView->Y() + m_UiListBorderView->H()));
 }
 

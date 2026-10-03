@@ -555,7 +555,8 @@ void UiHistoryView::EmitLinks()
   static int colorPairTextAttachment = UiColorConfig::GetColorPair("history_text_attachment_color");
   int fg = -1;
   int bg = -1;
-  extended_pair_content(colorPairTextAttachment, &fg, &bg);
+  // GetColorPair returns a COLOR_PAIR() attribute; the pair number is in it
+  extended_pair_content(PAIR_NUMBER(colorPairTextAttachment), &fg, &bg);
 
   const int hpad = (m_X == 0) ? 0 : 1;
   std::string out;

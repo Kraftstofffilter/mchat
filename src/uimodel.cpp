@@ -603,7 +603,9 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
   // dragging the list border resizes the chat list
   if (m_MouseDragBorder)
   {
-    if (isMotion || isClick)
+    // motion reports are not forwarded by every terminal or multiplexer, so
+    // the release position also sets the width
+    if (isMotion || isClick || isRelease)
     {
       const int width = p_Event.x;
       if (width != m_View->GetListWidth())
@@ -613,7 +615,9 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
       }
     }
 
-    if (isRelease)
+    // a release ends the drag; without release reports, the next press
+    // (click on the new position) ends it
+    if (isRelease || (isClick && !isMotion))
     {
       m_MouseDragBorder = false;
     }

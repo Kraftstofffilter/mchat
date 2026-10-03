@@ -116,6 +116,7 @@ void UiHistoryView::Draw()
   static int colorPairTextQuoted = UiColorConfig::GetColorPair("history_text_quoted_color");
   static int colorPairTextReaction = UiColorConfig::GetColorPair("history_text_reaction_color");
   static int colorPairTextAttachment = UiColorConfig::GetColorPair("history_text_attachment_color");
+  static int colorPairTextAttachmentLinked = UiColorConfig::GetColorPair("history_text_attachment_linked_color");
   static int attributeTextNormal = UiColorConfig::GetAttribute("history_text_attr");
   static int attributeTextSelected = UiColorConfig::GetAttribute("history_text_attr_selected");
 
@@ -282,6 +283,17 @@ void UiHistoryView::Draw()
         fileStatus = statusDownloadFailed;
       }
 
+      if (fileInfo.fileStatus == FileStatusDownloaded)
+      {
+        // attachmentLink is set below; the mark depends only on links being on
+        static const std::string linkedIndicator = UiConfig::GetStr("linked_indicator");
+        static const bool hasLinks = !UiConfig::GetStr("attachment_link_base").empty();
+        if (hasLinks && !linkedIndicator.empty())
+        {
+          fileStatus = " " + linkedIndicator;
+        }
+      }
+
       std::wstring fileStr = attachmentIndicator + StrUtil::ToWString(fileName + fileStatus);
       if (fileInfo.fileStatus == FileStatusDownloaded)
       {
@@ -414,9 +426,10 @@ void UiHistoryView::Draw()
         continue;
       }
 
+      const int colorPairAttachment = attachmentLink.empty() ? colorPairTextAttachment : colorPairTextAttachmentLinked;
       if (isAttachment)
       {
-        wattron(m_PaddedWin, attributeText | colorPairTextAttachment);
+        wattron(m_PaddedWin, attributeText | colorPairAttachment);
       }
       else if (isQuote)
       {
@@ -446,7 +459,7 @@ void UiHistoryView::Draw()
 
       if (isAttachment)
       {
-        wattroff(m_PaddedWin, attributeText | colorPairTextAttachment);
+        wattroff(m_PaddedWin, attributeText | colorPairAttachment);
       }
       else if (isQuote)
       {
@@ -552,11 +565,11 @@ void UiHistoryView::EmitLinks()
   // and the next history draw adds it again.
   if (m_LinkRows.empty()) return;
 
-  static int colorPairTextAttachment = UiColorConfig::GetColorPair("history_text_attachment_color");
+  static int colorPairTextAttachmentLinked = UiColorConfig::GetColorPair("history_text_attachment_linked_color");
   int fg = -1;
   int bg = -1;
   // GetColorPair returns a COLOR_PAIR() attribute; the pair number is in it
-  extended_pair_content(PAIR_NUMBER(colorPairTextAttachment), &fg, &bg);
+  extended_pair_content(PAIR_NUMBER(colorPairTextAttachmentLinked), &fg, &bg);
 
   const int hpad = (m_X == 0) ? 0 : 1;
   std::string out;

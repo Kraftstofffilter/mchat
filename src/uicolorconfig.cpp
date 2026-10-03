@@ -68,6 +68,8 @@ void UiColorConfig::Init()
     { "history_text_quoted_color_fg", defaultQuotedColor },
     { "history_text_attachment_color_bg", "" },
     { "history_text_attachment_color_fg", defaultAttachmentColor },
+    { "history_text_attachment_linked_color_bg", "" },
+    { "history_text_attachment_linked_color_fg", (COLORS > 8) ? "bright_cyan" : "cyan" },
     { "history_text_recv_group_color_bg", "" },
     { "history_text_recv_group_color_fg", "" },
 

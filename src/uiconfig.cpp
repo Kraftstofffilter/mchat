@@ -54,6 +54,7 @@ void UiConfig::Init()
     { "list_enabled", "1" },
     { "list_width", "14" },
     { "list_show_protocol", "0" },
+    { "linked_indicator", "" },
     { "thumbnail_command", "" },
     { "thumbnail_rows", "8" },
     { "mouse_enabled", "1" },

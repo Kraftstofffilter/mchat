@@ -45,6 +45,12 @@ public:
   int GetListChatIndexAt(int p_Y, int p_X);
   int GetHistoryMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment = nullptr);
   bool IsHistoryAt(int p_Y, int p_X);
+  bool IsListScrollBarAt(int p_Y, int p_X);
+  bool IsHistoryScrollBarAt(int p_Y, int p_X);
+  double GetListScrollBarFraction(int p_Y);
+  double GetHistoryScrollBarFraction(int p_Y);
+  void ListScrollToFraction(double p_Fraction);
+  void ListScrollBy(int p_Rows);
   int GetScreenWidth();
   int GetScreenHeight();
   void DecreaseListWidth();

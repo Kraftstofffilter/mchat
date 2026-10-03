@@ -57,7 +57,8 @@ void Ui::Init()
   keypad(stdscr, TRUE);
   if (UiConfig::GetBool("mouse_enabled"))
   {
-    mousemask(BUTTON1_PRESSED | BUTTON4_PRESSED | BUTTON5_PRESSED, nullptr);
+    mousemask(BUTTON1_PRESSED | BUTTON1_RELEASED | BUTTON4_PRESSED | BUTTON5_PRESSED | REPORT_MOUSE_POSITION,
+              nullptr);
     mouseinterval(0);
   }
   curs_set(0);

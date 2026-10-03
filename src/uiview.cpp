@@ -220,6 +220,36 @@ int UiView::GetHistoryMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment /*=
   return m_UiHistoryView ? m_UiHistoryView->GetMessageOffsetAt(p_Y, p_X, p_IsAttachment) : -1;
 }
 
+bool UiView::IsListScrollBarAt(int p_Y, int p_X)
+{
+  return m_UiListView && m_UiListView->IsScrollBarAt(p_Y, p_X);
+}
+
+bool UiView::IsHistoryScrollBarAt(int p_Y, int p_X)
+{
+  return m_UiHistoryView && m_UiHistoryView->IsScrollBarAt(p_Y, p_X);
+}
+
+double UiView::GetListScrollBarFraction(int p_Y)
+{
+  return m_UiListView ? m_UiListView->GetScrollBarFraction(p_Y) : 0.0;
+}
+
+double UiView::GetHistoryScrollBarFraction(int p_Y)
+{
+  return m_UiHistoryView ? m_UiHistoryView->GetScrollBarFraction(p_Y) : 0.0;
+}
+
+void UiView::ListScrollToFraction(double p_Fraction)
+{
+  if (m_UiListView) m_UiListView->ScrollToFraction(p_Fraction);
+}
+
+void UiView::ListScrollBy(int p_Rows)
+{
+  if (m_UiListView) m_UiListView->ScrollBy(p_Rows);
+}
+
 bool UiView::IsHistoryAt(int p_Y, int p_X)
 {
   return m_UiHistoryView && m_UiHistoryView->Contains(p_Y, p_X);

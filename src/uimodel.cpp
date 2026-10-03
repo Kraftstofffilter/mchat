@@ -588,13 +588,54 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
   const bool isWheelUp = (p_Event.bstate & BUTTON4_PRESSED);
   const bool isWheelDown = (p_Event.bstate & BUTTON5_PRESSED);
   const bool isClick = (p_Event.bstate & BUTTON1_PRESSED);
+  const bool isRelease = (p_Event.bstate & BUTTON1_RELEASED);
+  const bool isMotion = (p_Event.bstate & REPORT_MOUSE_POSITION);
   const int chatIndex = m_View->GetListChatIndexAt(p_Event.y, p_Event.x);
+
+  // scroll bar dragging: press on a bar starts it, motion follows, release ends
+  if (m_MouseDragTarget != 0)
+  {
+    if (isMotion || isClick)
+    {
+      if (m_MouseDragTarget == 1)
+      {
+        m_View->ListScrollToFraction(m_View->GetListScrollBarFraction(p_Event.y));
+      }
+      else
+      {
+        OnMouseScrollHistoryTo(m_View->GetHistoryScrollBarFraction(p_Event.y));
+      }
+      return;
+    }
+
+    if (isRelease)
+    {
+      m_MouseDragTarget = 0;
+      return;
+    }
+  }
+
+  if (isRelease || isMotion) return;
+
+  if (isClick && m_View->IsListScrollBarAt(p_Event.y, p_Event.x))
+  {
+    m_MouseDragTarget = 1;
+    m_View->ListScrollToFraction(m_View->GetListScrollBarFraction(p_Event.y));
+    return;
+  }
+
+  if (isClick && m_View->IsHistoryScrollBarAt(p_Event.y, p_Event.x))
+  {
+    m_MouseDragTarget = 2;
+    OnMouseScrollHistoryTo(m_View->GetHistoryScrollBarFraction(p_Event.y));
+    return;
+  }
 
   if (isWheelUp || isWheelDown)
   {
-    if (chatIndex >= 0)
+    if ((chatIndex >= 0) || m_View->IsListScrollBarAt(p_Event.y, p_Event.x))
     {
-      isWheelUp ? OnKeyPrevChat() : OnKeyNextChat();
+      m_View->ListScrollBy(isWheelUp ? -3 : 3);
     }
     else if (m_View->IsHistoryAt(p_Event.y, p_Event.x))
     {
@@ -676,6 +717,37 @@ void UiModel::Impl::OnMouseScrollHistory(bool p_Up)
     }
   }
 
+  UpdateHistory();
+}
+
+void UiModel::Impl::OnMouseScrollHistoryTo(double p_Fraction)
+{
+  AnyUserKeyInput();
+
+  if (GetEditMessageActive()) return;
+
+  if (m_CurrentChat == s_ChatNone) return;
+
+  const std::string& profileId = m_CurrentChat.first;
+  const std::string& chatId = m_CurrentChat.second;
+  const int messageCount = m_Messages[profileId][chatId].size();
+  if (messageCount == 0) return;
+
+  // top of the bar is the oldest loaded message, bottom the newest
+  const int offset = std::min(std::max((int)((1.0 - p_Fraction) * (messageCount - 1) + 0.5), 0),
+                              messageCount - 1);
+  m_MessageOffset[profileId][chatId] = offset;
+  m_MouseViewAnchor[profileId][chatId] = std::make_pair(offset, offset);
+  if (offset == 0)
+  {
+    SetSelectMessageActive(false);
+  }
+  else if (!GetSelectMessageActive())
+  {
+    SetSelectMessageActive(true);
+  }
+
+  RequestMessagesCurrentChat();
   UpdateHistory();
 }
 

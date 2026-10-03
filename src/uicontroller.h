@@ -20,6 +20,7 @@ public:
 
   static wint_t GetKey(int p_TimeOutMs, bool p_AllowMouse = false);
   static const MEVENT& GetMouseEvent();
+  static void SetMouseEnabled(bool p_Enabled);
 
 private:
   static MEVENT s_MouseEvent;

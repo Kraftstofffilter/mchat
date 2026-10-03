@@ -55,11 +55,7 @@ void Ui::Init()
   cbreak();
   UiConfig::GetBool("linefeed_on_enter") ? nl() : nonl();
   keypad(stdscr, TRUE);
-  if (UiConfig::GetBool("mouse_enabled"))
-  {
-    mousemask(BUTTON1_PRESSED | BUTTON4_PRESSED | BUTTON5_PRESSED, nullptr);
-    mouseinterval(0);
-  }
+  UiController::SetMouseEnabled(UiConfig::GetBool("mouse_enabled"));
   curs_set(0);
   timeout(0);
   EmojiList::Init();

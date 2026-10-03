@@ -70,6 +70,18 @@ wint_t UiController::GetKey(int p_TimeOutMs, bool p_AllowMouse /*= false*/)
   return key;
 }
 
+void UiController::SetMouseEnabled(bool p_Enabled)
+{
+  // reset first, so the terminal's mouse reporting is re-enabled after an
+  // external program (attachment viewer, editor) switched it off
+  mousemask(0, nullptr);
+  if (p_Enabled)
+  {
+    mousemask(BUTTON1_PRESSED | BUTTON4_PRESSED | BUTTON5_PRESSED, nullptr);
+    mouseinterval(0);
+  }
+}
+
 const MEVENT& UiController::GetMouseEvent()
 {
   return s_MouseEvent;

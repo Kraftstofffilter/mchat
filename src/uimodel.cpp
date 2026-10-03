@@ -98,6 +98,11 @@ void UiModel::Impl::TerminalControlPause()
 void UiModel::Impl::TerminalControlResume()
 {
   refresh();
+  static const bool mouseEnabled = UiConfig::GetBool("mouse_enabled");
+  if (mouseEnabled)
+  {
+    UiController::SetMouseEnabled(true);
+  }
   printf("\033[?1004h"); // enable terminal focus in/out event
   fflush(stdout);
   wint_t key = 0;
@@ -688,10 +693,9 @@ void UiModel::Impl::OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachm
   RequestMessagesCurrentChat();
   UpdateHistory();
 
-  // with attachment links, selecting downloads the file and shows its link;
-  // otherwise open it as the open key would
-  static const bool hasAttachmentLinks = !UiConfig::GetStr("attachment_link_base").empty();
-  if (p_OpenAttachment && !hasAttachmentLinks)
+  // open it as the open key would (downloading first if needed); with
+  // attachment_open_command set to a terminal viewer this shows pictures
+  if (p_OpenAttachment)
   {
     OnKeyOpenAttachment();
   }

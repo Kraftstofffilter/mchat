@@ -11,6 +11,10 @@
 # As mchat's attachment_open_command (ui.conf), clicking a picture shows it:
 #   attachment_open_command=~/Workspace/mchat/utils/mchat/mchat-preview.py '%1'
 # Files that are not pictures exit at once without output.
+#
+#        mchat-preview.py --thumb <image> <out.png>
+# writes a small PNG for inline thumbnails (thumbnail_command in ui.conf):
+#   thumbnail_command=~/Workspace/mchat/utils/mchat/mchat-preview.py --thumb '%1' '%2'
 
 import base64
 import io
@@ -78,7 +82,23 @@ def show_blocks(img, cols, rows):
     sys.stdout.flush()
 
 
+def make_thumbnail(src, dst):
+    # PNG thumbnail for mchat's inline previews (thumbnail_command)
+    img = ImageOps.exif_transpose(Image.open(src))
+    img.thumbnail((320, 320))
+    tmp = dst + ".tmp"
+    img.convert("RGBA").save(tmp, format="PNG")
+    os.replace(tmp, dst)
+    return 0
+
+
 def main():
+    if len(sys.argv) >= 4 and sys.argv[1] == "--thumb":
+        try:
+            return make_thumbnail(sys.argv[2], sys.argv[3])
+        except Exception:
+            return 1
+
     if len(sys.argv) < 2:
         print("usage: mchat-preview.py <image> [--blocks]", file=sys.stderr)
         return 1

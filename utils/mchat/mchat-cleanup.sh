@@ -2,7 +2,8 @@
 # mchat-cleanup.sh
 #
 # Deletes downloaded attachments older than MCHAT_CLEANUP_DAYS (default 30)
-# from nchat's profile folders and from mchat's attachment link folder.
+# from nchat's profile folders, mchat's attachment link folder and its
+# thumbnail cache.
 # nchat shows a deleted attachment as downloadable again, so a click
 # fetches it anew. Session data is never touched: WhatsApp files are only
 # taken from <profile>/tmp, Telegram files only from subfolders of
@@ -22,6 +23,11 @@ done
 for dir in "${CONF_DIR}"/profiles/Telegram_*/tdlib; do
   find "${dir}" -mindepth 2 -type f -mtime "+${DAYS}" -print -delete
 done
+
+THUMB_DIR="${HOME}/.cache/mchat/thumbs"
+if [[ -d "${THUMB_DIR}" ]]; then
+  find "${THUMB_DIR}" -type f -mtime "+${DAYS}" -print -delete
+fi
 
 if [[ -d "${LINK_DIR}" ]]; then
   find "${LINK_DIR}" -mindepth 1 -type f -mtime "+${DAYS}" -print -delete

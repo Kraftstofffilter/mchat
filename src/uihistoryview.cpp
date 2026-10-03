@@ -22,6 +22,7 @@
 #include "timeutil.h"
 #include "uicolorconfig.h"
 #include "uiconfig.h"
+#include "uiimage.h"
 #include "uimodel.h"
 
 // Publishes a downloaded attachment under attachment_link_dir (hard link,
@@ -282,6 +283,21 @@ void UiHistoryView::Draw()
       std::wstring fileStr = attachmentIndicator + StrUtil::ToWString(fileName + fileStatus);
       if (fileInfo.fileStatus == FileStatusDownloaded)
       {
+        int thumbPair = 0;
+        int thumbCols = 0;
+        int thumbRows = 0;
+        if (UiImage::GetThumbnail(fileInfo.filePath, m_PaddedW - 2, thumbPair, thumbCols, thumbRows))
+        {
+          // marker U+0001 + color pair ahead of the text; stripped when drawn
+          for (int row = thumbRows - 1; row >= 0; --row)
+          {
+            std::wstring line = L"\u0001";
+            line += (wchar_t)thumbPair;
+            line += L"  " + UiImage::PlaceholderRow(row, thumbCols);
+            wlines.insert(wlines.begin(), line);
+          }
+        }
+
         const std::string link = GetAttachmentLink(fileInfo.filePath);
         if (!link.empty())
         {
@@ -385,10 +401,23 @@ void UiHistoryView::Draw()
 
     for (auto wline = wlines.rbegin(); wline != wlines.rend(); ++wline)
     {
+      bool isThumbnail = !wline->empty() && (wline->at(0) == L'\u0001') && (wline->size() > 2);
       bool isAttachment = (wline->rfind(attachmentIndicator, 0) == 0);
       bool isAttachmentLink = (wline->rfind(L"  https://", 0) == 0) || (wline->rfind(L"  http://", 0) == 0);
       bool isQuote = (wline->rfind(quoteIndicator, 0) == 0);
       bool isReaction = (reactionLines == 1) && (std::distance(wline, wlines.rbegin()) == 0);
+
+      if (isThumbnail)
+      {
+        const int thumbPair = (int)wline->at(1);
+        const std::wstring wthumb = wline->substr(2);
+        wattron(m_PaddedWin, COLOR_PAIR(thumbPair));
+        mvwaddnwstr(m_PaddedWin, y, 0, wthumb.c_str(), wthumb.size());
+        wattroff(m_PaddedWin, COLOR_PAIR(thumbPair));
+        m_RowHits[y] = std::make_pair(drawMessageOffset, true);
+        if (--y < 0) break;
+        continue;
+      }
 
       if (isAttachment)
       {

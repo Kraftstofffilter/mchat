@@ -33,6 +33,7 @@
 #include "uicontactlistdialog.h"
 #include "uigroupmemberlistdialog.h"
 #include "uicontroller.h"
+#include "uiimage.h"
 #include "uiemojilistdialog.h"
 #include "uifilelistdialog.h"
 #include "uikeyconfig.h"
@@ -103,6 +104,10 @@ void UiModel::Impl::TerminalControlResume()
   {
     UiController::SetMouseEnabled(true);
   }
+
+  // an external program may have cleared terminal images
+  UiImage::InvalidateTransmitted();
+  UpdateHistory();
   printf("\033[?1004h"); // enable terminal focus in/out event
   fflush(stdout);
   wint_t key = 0;
@@ -2533,6 +2538,11 @@ bool UiModel::Impl::Process()
   }
 
   ProcessTimers();
+
+  if (UiImage::TakeUpdated())
+  {
+    UpdateHistory();
+  }
 
   if (!m_PendingOpenPath.empty())
   {

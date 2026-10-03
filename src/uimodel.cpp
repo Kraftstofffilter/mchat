@@ -821,8 +821,20 @@ void UiModel::Impl::OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachm
   UpdateHistory();
 
   // clicking an attachment (line, link or thumbnail) only selects it; the
-  // selection prefetch downloads it, which shows its link and thumbnail
-  (void)p_OpenAttachment;
+  // selection prefetch downloads it, which shows its link and thumbnail.
+  // Clicking message text also copies the whole message to the clipboard.
+  if (!p_OpenAttachment)
+  {
+    const std::vector<std::string>& messageVec = m_MessageVec[profileId][chatId];
+    if (p_MessageOffset < (int)messageVec.size())
+    {
+      auto mit = m_Messages[profileId][chatId].find(messageVec.at(p_MessageOffset));
+      if (mit != m_Messages[profileId][chatId].end())
+      {
+        CopyToClipboard(mit->second.text);
+      }
+    }
+  }
 }
 
 void UiModel::Impl::OnKeyUnreadChat()

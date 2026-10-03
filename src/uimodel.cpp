@@ -618,7 +618,7 @@ void UiModel::Impl::OnMouse(const MEVENT& p_Event)
     return;
   }
 
-  if (isRelease || isMotion) return;
+  if (!isClick && (isRelease || isMotion)) return;
 
   if (isClick && m_View->IsListBorderAt(p_Event.y, p_Event.x))
   {
@@ -731,9 +731,29 @@ void UiModel::Impl::OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachm
   UpdateHistory();
 
   // open it as the open key would (downloading first if needed); with
-  // attachment_open_command set to a terminal viewer this shows pictures
+  // attachment_open_command set to a terminal viewer this shows pictures.
+  // A download already running (started by selection prefetch) is opened
+  // when it completes.
   if (p_OpenAttachment)
   {
+    const std::vector<std::string>& messageVec = m_MessageVec[profileId][chatId];
+    const std::string msgId = (p_MessageOffset < (int)messageVec.size()) ? messageVec.at(p_MessageOffset) : "";
+    auto mit = m_Messages[profileId][chatId].find(msgId);
+    if (!msgId.empty() && (mit != m_Messages[profileId][chatId].end()) && !mit->second.fileInfo.empty())
+    {
+      FileInfo fileInfo = ProtocolUtil::FileInfoFromHex(mit->second.fileInfo);
+      if (fileInfo.fileStatus == FileStatusDownloading)
+      {
+        m_PendingOpenMsg = std::make_pair(chatId, msgId);
+        return;
+      }
+
+      if (!IsAttachmentDownloaded(fileInfo))
+      {
+        m_PendingOpenMsg = std::make_pair(chatId, msgId);
+      }
+    }
+
     OnKeyOpenAttachment();
   }
 }
@@ -2141,12 +2161,15 @@ void UiModel::Impl::MessageHandler(std::shared_ptr<ServiceMessage> p_ServiceMess
           mit->second.fileInfo = fileInfoStr;
         }
 
-        if (downloadFileAction == DownloadFileActionOpen)
+        const bool isPendingOpen = (m_PendingOpenMsg.first == chatId) && (m_PendingOpenMsg.second == msgId);
+        if ((downloadFileAction == DownloadFileActionOpen) || isPendingOpen)
         {
           FileInfo fileInfo = ProtocolUtil::FileInfoFromHex(fileInfoStr);
-          if (!fileInfo.filePath.empty())
+          if (!fileInfo.filePath.empty() && (fileInfo.fileStatus == FileStatusDownloaded))
           {
-            OnKeyOpenAttachment(fileInfo.filePath);
+            // run the viewer from the UI thread (Process), which owns the terminal
+            m_PendingOpenPath = fileInfo.filePath;
+            m_PendingOpenMsg = std::make_pair(std::string(), std::string());
           }
         }
         else if (downloadFileAction == DownloadFileActionSave)
@@ -2510,6 +2533,14 @@ bool UiModel::Impl::Process()
   }
 
   ProcessTimers();
+
+  if (!m_PendingOpenPath.empty())
+  {
+    std::string path;
+    path.swap(m_PendingOpenPath);
+    m_View->Draw();
+    OnKeyOpenAttachment(path);
+  }
 
   SetTyping("", "", false);
   m_View->Draw();

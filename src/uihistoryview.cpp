@@ -386,6 +386,7 @@ void UiHistoryView::Draw()
     for (auto wline = wlines.rbegin(); wline != wlines.rend(); ++wline)
     {
       bool isAttachment = (wline->rfind(attachmentIndicator, 0) == 0);
+      bool isAttachmentLink = (wline->rfind(L"  https://", 0) == 0) || (wline->rfind(L"  http://", 0) == 0);
       bool isQuote = (wline->rfind(quoteIndicator, 0) == 0);
       bool isReaction = (reactionLines == 1) && (std::distance(wline, wlines.rbegin()) == 0);
 
@@ -408,7 +409,7 @@ void UiHistoryView::Draw()
 
       const std::wstring wdisp = isReaction ? *wline : StrUtil::TrimPadWString(*wline, m_PaddedW);
       mvwaddnwstr(m_PaddedWin, y, 0, wdisp.c_str(), std::min((int)wdisp.size(), m_PaddedW));
-      m_RowHits[y] = std::make_pair(drawMessageOffset, isAttachment);
+      m_RowHits[y] = std::make_pair(drawMessageOffset, isAttachment || isAttachmentLink);
 
       if (isAttachment)
       {

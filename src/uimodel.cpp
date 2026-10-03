@@ -733,32 +733,9 @@ void UiModel::Impl::OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachm
   RequestMessagesCurrentChat();
   UpdateHistory();
 
-  // open it as the open key would (downloading first if needed); with
-  // attachment_open_command set to a terminal viewer this shows pictures.
-  // A download already running (started by selection prefetch) is opened
-  // when it completes.
-  if (p_OpenAttachment)
-  {
-    const std::vector<std::string>& messageVec = m_MessageVec[profileId][chatId];
-    const std::string msgId = (p_MessageOffset < (int)messageVec.size()) ? messageVec.at(p_MessageOffset) : "";
-    auto mit = m_Messages[profileId][chatId].find(msgId);
-    if (!msgId.empty() && (mit != m_Messages[profileId][chatId].end()) && !mit->second.fileInfo.empty())
-    {
-      FileInfo fileInfo = ProtocolUtil::FileInfoFromHex(mit->second.fileInfo);
-      if (fileInfo.fileStatus == FileStatusDownloading)
-      {
-        m_PendingOpenMsg = std::make_pair(chatId, msgId);
-        return;
-      }
-
-      if (!IsAttachmentDownloaded(fileInfo))
-      {
-        m_PendingOpenMsg = std::make_pair(chatId, msgId);
-      }
-    }
-
-    OnKeyOpenAttachment();
-  }
+  // clicking an attachment (line, link or thumbnail) only selects it; the
+  // selection prefetch downloads it, which shows its link and thumbnail
+  (void)p_OpenAttachment;
 }
 
 void UiModel::Impl::OnKeyUnreadChat()

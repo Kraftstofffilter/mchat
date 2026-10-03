@@ -899,6 +899,8 @@ func (handler *WmEventHandler) SyncChatSettingsOnce() {
 			return
 		}
 
+		// without this, whatsmeow stores full-sync settings silently
+		client.EmitAppStateEventsOnFullSync = true
 		err := client.FetchAppState(context.TODO(), appstate.WAPatchRegularLow, true, false)
 		if err != nil {
 			LOG_WARNING(fmt.Sprintf("fetch regular_low app state failed %#v", err))

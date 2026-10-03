@@ -45,7 +45,10 @@ namespace
   };
   const int s_DiacriticCount = sizeof(s_Diacritics) / sizeof(s_Diacritics[0]);
   const wchar_t s_Placeholder = 0x10EEEE;
-  const int s_MaxImageId = 255; // ids are carried in 256-color foreground
+  // ids are carried in the 256-color foreground; curses writes colors below
+  // 16 as basic SGR codes (30-37, 90-97), which do not select an image
+  const int s_MinImageId = 16;
+  const int s_MaxImageId = 255;
 
   enum State { Pending, Ready, Failed };
 
@@ -67,7 +70,7 @@ namespace
   std::atomic<bool> s_Updated(false);
   bool s_WorkerStarted = false;
   std::vector<std::string> s_IdOwner(s_MaxImageId + 1); // image id -> source path
-  int s_NextId = 1;
+  int s_NextId = s_MinImageId;
 
   std::string Base64Encode(const std::string& p_Data)
   {
@@ -250,7 +253,7 @@ bool UiImage::GetThumbnail(const std::string& p_Path, int p_MaxCols, int& p_Colo
   {
     // reuse ids round-robin; a reused id is retransmitted by its new owner
     const int id = s_NextId;
-    s_NextId = (s_NextId % s_MaxImageId) + 1;
+    s_NextId = (s_NextId >= s_MaxImageId) ? s_MinImageId : (s_NextId + 1);
     const std::string& prevOwner = s_IdOwner[id];
     if (!prevOwner.empty())
     {

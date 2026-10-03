@@ -462,7 +462,25 @@ std::wstring StrUtil::ToWString(const std::string& p_Str)
 {
   try
   {
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>{ }.from_bytes(p_Str);
+    std::wstring wstr = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>{ }.from_bytes(p_Str);
+
+    // Drop emoji variation selectors (U+FE0F) after narrow characters such as
+    // U+2764 (heart): terminals then draw the character two cells wide while
+    // curses counts one, so the next character overlaps it. Without the
+    // selector it is drawn in its narrow text presentation.
+    for (size_t i = 1; i < wstr.size(); )
+    {
+      if ((wstr[i] == 0xFE0F) && (wcwidth(wstr[i - 1]) == 1))
+      {
+        wstr.erase(i, 1);
+      }
+      else
+      {
+        ++i;
+      }
+    }
+
+    return wstr;
   }
   catch (...)
   {

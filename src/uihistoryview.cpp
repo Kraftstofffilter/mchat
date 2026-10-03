@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <cstdio>
+#include <cwctype>
 #include <functional>
 #include <unordered_map>
 
@@ -72,6 +73,105 @@ static std::string GetAttachmentLink(const std::string& p_FilePath)
   const std::string url = linkBase + "/" + id + "/" + encodedName;
   s_Links[p_FilePath] = url;
   return url;
+}
+
+// Draws one message text line with WhatsApp / Telegram style formatting:
+// *bold*, _italic_, ~strikethrough~ (dim; curses has no strikethrough),
+// `code` and ```code``` (underlined), also **bold** and __italic__. Markers
+// are hidden. A marker opens after a boundary (line start, space or
+// punctuation) before a non-space, and closes after a non-space before a
+// boundary on the same line, so snake_case or 2*3*4 stay as they are.
+static void DrawFormattedLine(WINDOW* p_Win, int p_Y, int p_Width, const std::wstring& p_Line, attr_t p_Attr)
+{
+  const int n = p_Line.size();
+  std::vector<attr_t> attrs(n, 0);
+  std::vector<bool> hidden(n, false);
+  auto isBoundary = [&](int i)
+  {
+    return (i < 0) || (i >= n) || iswspace(p_Line[i]) || iswpunct(p_Line[i]);
+  };
+
+  for (int i = 0; i < n; )
+  {
+    const wchar_t c = p_Line[i];
+    if (hidden[i])
+    {
+      ++i;
+      continue;
+    }
+
+    if (c == L'`')
+    {
+      const int len = ((i + 2) < n) && (p_Line[i + 1] == L'`') && (p_Line[i + 2] == L'`') ? 3 : 1;
+      const size_t j = p_Line.find(p_Line.substr(i, len), i + len);
+      if ((j != std::wstring::npos) && ((int)j > (i + len)))
+      {
+        for (int k = 0; k < len; ++k)
+        {
+          hidden[i + k] = true;
+          hidden[j + k] = true;
+        }
+
+        for (int k = i + len; k < (int)j; ++k)
+        {
+          attrs[k] |= A_UNDERLINE;
+        }
+
+        i = j + len;
+        continue;
+      }
+    }
+    else if ((c == L'*') || (c == L'_') || (c == L'~'))
+    {
+      const int len = ((i + 1) < n) && (p_Line[i + 1] == c) && (c != L'~') ? 2 : 1;
+      if (isBoundary(i - 1) && ((i + len) < n) && !iswspace(p_Line[i + len]))
+      {
+        for (int j = i + len + 1; (j + len) <= n; ++j)
+        {
+          if ((p_Line.compare(j, len, p_Line, i, len) == 0) && !iswspace(p_Line[j - 1]) && isBoundary(j + len))
+          {
+            const attr_t style = (c == L'*') ? A_BOLD : ((c == L'_') ? A_ITALIC : A_DIM);
+            for (int k = 0; k < len; ++k)
+            {
+              hidden[i + k] = true;
+              hidden[j + k] = true;
+            }
+
+            for (int k = i + len; k < j; ++k)
+            {
+              attrs[k] |= style;
+            }
+
+            break;
+          }
+        }
+
+        i += len;
+        continue;
+      }
+    }
+
+    ++i;
+  }
+
+  wmove(p_Win, p_Y, 0);
+  std::wstring shown;
+  for (int i = 0; i < n; ++i)
+  {
+    if (hidden[i]) continue;
+
+    wattrset(p_Win, p_Attr | attrs[i]);
+    waddnwstr(p_Win, &p_Line[i], 1);
+    shown += p_Line[i];
+  }
+
+  wattrset(p_Win, p_Attr);
+  const int pad = p_Width - StrUtil::WStringWidth(shown);
+  if (pad > 0)
+  {
+    const std::wstring spaces(pad, L' ');
+    waddnwstr(p_Win, spaces.c_str(), spaces.size());
+  }
 }
 
 UiHistoryView::UiHistoryView(const UiViewParams& p_Params)
@@ -445,7 +545,15 @@ void UiHistoryView::Draw()
       }
 
       const std::wstring wdisp = isReaction ? *wline : StrUtil::TrimPadWString(*wline, m_PaddedW);
-      mvwaddnwstr(m_PaddedWin, y, 0, wdisp.c_str(), std::min((int)wdisp.size(), m_PaddedW));
+      static const bool messageFormatting = UiConfig::GetBool("message_formatting");
+      if (messageFormatting && !isAttachment && !isAttachmentLink && !isQuote && !isReaction)
+      {
+        DrawFormattedLine(m_PaddedWin, y, m_PaddedW, wdisp, attributeText | colorPairText);
+      }
+      else
+      {
+        mvwaddnwstr(m_PaddedWin, y, 0, wdisp.c_str(), std::min((int)wdisp.size(), m_PaddedW));
+      }
       m_RowHits[y] = std::make_pair(drawMessageOffset, isAttachment || isAttachmentLink);
       if (isAttachment && !attachmentLink.empty())
       {

@@ -22,18 +22,10 @@ public:
   // chat index drawn at screen position, or -1
   int GetChatIndexAt(int p_Y, int p_X);
 
-  bool IsScrollBarAt(int p_Y, int p_X);
-  double GetScrollBarFraction(int p_Y);
-  void ScrollToFraction(double p_Fraction);
-  void ScrollBy(int p_Rows);
-
 private:
   WINDOW* m_PaddedWin = nullptr;
   int m_PaddedH = 0;
   int m_PaddedW = 0;
   int m_DrawOffset = 0;
   int m_DrawCount = 0;
-  // scroll position set by mouse, kept until the current chat changes
-  int m_ManualOffset = -1;
-  int m_ManualIndex = -1;
 };

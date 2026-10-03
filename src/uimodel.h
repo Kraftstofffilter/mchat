@@ -52,7 +52,6 @@ private:
     void OnMouseSelectChat(int p_ChatIndex);
     void OnMouseScrollHistory(bool p_Up);
     void OnMouseSelectMessage(int p_MessageOffset, bool p_OpenAttachment);
-    void OnMouseScrollHistoryTo(double p_Fraction);
     void OnKeyPrevChat();
     void OnKeyUnreadChat();
     void OnKeyPrevPage();
@@ -270,8 +269,6 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, int>> m_MessageOffset;
     // mouse selection keeps the view: {view start, selected message offset}
     std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> m_MouseViewAnchor;
-    // scroll bar being dragged: 0 none, 1 chat list, 2 message history
-    int m_MouseDragTarget = 0;
     std::unordered_map<std::string, std::unordered_map<std::string, std::stack<int>>> m_MessageOffsetStack;
     std::unordered_map<std::string,
                        std::unordered_map<std::string, std::unordered_set<std::string>>> m_MsgFromIdsRequested;

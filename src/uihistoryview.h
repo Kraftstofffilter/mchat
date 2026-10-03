@@ -25,8 +25,6 @@ public:
   // message offset (0 = newest) drawn at screen position, or -1
   int GetMessageOffsetAt(int p_Y, int p_X, bool* p_IsAttachment = nullptr);
   bool Contains(int p_Y, int p_X);
-  bool IsScrollBarAt(int p_Y, int p_X);
-  double GetScrollBarFraction(int p_Y);
 
 private:
   std::string GetTimeString(int64_t p_TimeSent);

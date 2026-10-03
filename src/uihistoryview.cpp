@@ -526,20 +526,6 @@ int UiHistoryView::GetHistoryShowCount()
   return m_HistoryShowCount;
 }
 
-bool UiHistoryView::IsScrollBarAt(int p_Y, int p_X)
-{
-  return m_Enabled && (m_X != 0) && (p_X == (m_X + m_W - 1)) && (p_Y >= (m_Y + 1)) &&
-         (p_Y < (m_Y + 1 + m_PaddedH));
-}
-
-double UiHistoryView::GetScrollBarFraction(int p_Y)
-{
-  if (m_PaddedH <= 1) return 0.0;
-
-  const int row = std::min(std::max(p_Y - (m_Y + 1), 0), m_PaddedH - 1);
-  return (double)row / (double)(m_PaddedH - 1);
-}
-
 bool UiHistoryView::Contains(int p_Y, int p_X)
 {
   return m_Enabled && (p_Y >= m_Y) && (p_Y < (m_Y + m_H)) && (p_X >= m_X) && (p_X < (m_X + m_W));

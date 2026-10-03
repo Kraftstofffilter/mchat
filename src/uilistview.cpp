@@ -86,16 +86,6 @@ void UiListView::Draw()
     {
       offset = m_DrawOffset;
     }
-
-    // mouse scrolling (wheel, scroll bar) may move the selected chat out of view
-    if ((m_ManualOffset >= 0) && (m_ManualIndex == index))
-    {
-      offset = std::min(m_ManualOffset, std::max(0, count - height));
-    }
-    else
-    {
-      m_ManualOffset = -1;
-    }
     int last = std::min((height + offset), count);
     m_DrawOffset = offset;
     m_DrawCount = count;
@@ -150,35 +140,6 @@ void UiListView::Draw()
   wnoutrefresh(m_Win);
 
   wrefresh(m_PaddedWin);
-}
-
-bool UiListView::IsScrollBarAt(int p_Y, int p_X)
-{
-  return m_Enabled && (p_X == (m_X + m_W - 1)) && (p_Y >= (m_Y + 1)) && (p_Y < (m_Y + 1 + m_PaddedH));
-}
-
-double UiListView::GetScrollBarFraction(int p_Y)
-{
-  if (m_PaddedH <= 1) return 0.0;
-
-  const int row = std::min(std::max(p_Y - (m_Y + 1), 0), m_PaddedH - 1);
-  return (double)row / (double)(m_PaddedH - 1);
-}
-
-void UiListView::ScrollToFraction(double p_Fraction)
-{
-  const int maxOffset = std::max(0, m_DrawCount - m_PaddedH);
-  m_ManualOffset = (int)(p_Fraction * maxOffset + 0.5);
-  m_ManualIndex = std::max(0, m_Model->GetCurrentChatIndexLocked());
-  SetDirty(true);
-}
-
-void UiListView::ScrollBy(int p_Rows)
-{
-  const int maxOffset = std::max(0, m_DrawCount - m_PaddedH);
-  m_ManualOffset = std::min(std::max(m_DrawOffset + p_Rows, 0), maxOffset);
-  m_ManualIndex = std::max(0, m_Model->GetCurrentChatIndexLocked());
-  SetDirty(true);
 }
 
 int UiListView::GetChatIndexAt(int p_Y, int p_X)

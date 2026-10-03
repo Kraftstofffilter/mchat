@@ -293,7 +293,33 @@ void UiHistoryView::Draw()
         text = StrUtil::Textize(text);
       }
 
-      wlines = StrUtil::WordWrap(StrUtil::ToWString(text), m_PaddedW, false, false, false, 2);
+      static const bool messageFormatting = UiConfig::GetBool("message_formatting");
+      wlines = StrUtil::WordWrap(StrUtil::ToWString(text), m_PaddedW - (messageFormatting ? 2 : 0), false, false,
+                                 false, 2);
+
+      // fenced code blocks: drop the ``` lines, mark the lines between them
+      // (marker U+0002, drawn as a gutter without inline formatting)
+      if (messageFormatting)
+      {
+        bool inBlock = false;
+        std::vector<std::wstring> blockLines;
+        for (const std::wstring& wline : wlines)
+        {
+          const size_t first = wline.find_first_not_of(L' ');
+          const bool isFence = (first != std::wstring::npos) && (wline.compare(first, 3, L"```") == 0) &&
+            ((wline.find(L"```", first + 3) == std::wstring::npos) || !inBlock);
+          const bool isInlineCode = isFence && !inBlock && (wline.find(L"```", first + 3) != std::wstring::npos);
+          if (isFence && !isInlineCode)
+          {
+            inBlock = !inBlock;
+            continue;
+          }
+
+          blockLines.push_back(inBlock ? (L"\u0002" + wline) : wline);
+        }
+
+        wlines.swap(blockLines);
+      }
     }
 
     // Quoted message
@@ -513,6 +539,7 @@ void UiHistoryView::Draw()
     for (auto wline = wlines.rbegin(); wline != wlines.rend(); ++wline)
     {
       bool isThumbnail = (wline->size() == 4) && (wline->at(0) == L'\u0001');
+      bool isCodeBlock = !wline->empty() && (wline->at(0) == L'\u0002');
       bool isAttachment = (wline->rfind(attachmentIndicator, 0) == 0);
       bool isAttachmentLink = (wline->rfind(L"  https://", 0) == 0) || (wline->rfind(L"  http://", 0) == 0);
       bool isQuote = (wline->rfind(quoteIndicator, 0) == 0);
@@ -546,7 +573,17 @@ void UiHistoryView::Draw()
 
       const std::wstring wdisp = isReaction ? *wline : StrUtil::TrimPadWString(*wline, m_PaddedW);
       static const bool messageFormatting = UiConfig::GetBool("message_formatting");
-      if (messageFormatting && !isAttachment && !isAttachmentLink && !isQuote && !isReaction)
+      if (isCodeBlock)
+      {
+        static int colorPairTextQuotedCode = UiColorConfig::GetColorPair("history_text_quoted_color");
+        const std::wstring gutter = L"\u2502 ";
+        wattrset(m_PaddedWin, attributeTextNormal | colorPairTextQuotedCode);
+        mvwaddnwstr(m_PaddedWin, y, 0, gutter.c_str(), gutter.size());
+        wattrset(m_PaddedWin, attributeText | colorPairText);
+        const std::wstring code = StrUtil::TrimPadWString(wline->substr(1), std::max(m_PaddedW - 2, 0));
+        waddnwstr(m_PaddedWin, code.c_str(), code.size());
+      }
+      else if (messageFormatting && !isAttachment && !isAttachmentLink && !isQuote && !isReaction)
       {
         DrawFormattedLine(m_PaddedWin, y, m_PaddedW, wdisp, attributeText | colorPairText);
       }

@@ -68,16 +68,17 @@ void UiListView::Draw()
     bool isUnread = m_Model->GetChatIsUnreadLocked(chatPair.first, chatPair.second);
     names.push_back(name);
     unreads.push_back(isUnread);
+    std::string marks = m_Model->GetChatListMarksLocked(chatPair.first, chatPair.second);
     if (showProtocol)
     {
       // profile ids look like WhatsAppMd_+123 or Telegram_+123
       // short tag: @W (WhatsApp), @T (Telegram), @S (Signal)
       const std::string protocol = chatPair.first.substr(0, 1);
-      protocols.push_back(StrUtil::ToWString(" @" + protocol));
+      protocols.push_back(StrUtil::ToWString(marks + " @" + protocol));
     }
     else
     {
-      protocols.push_back(L"");
+      protocols.push_back(StrUtil::ToWString(marks));
     }
   }
 

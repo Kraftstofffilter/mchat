@@ -1978,7 +1978,8 @@ void UiModel::Impl::MessageHandler(std::shared_ptr<ServiceMessage> p_ServiceMess
 
             m_ChatInfos[profileId][chatInfo.id] = chatInfo;
 
-            if (chatInfo.isArchived) continue;
+            static const bool showArchived = UiConfig::GetBool("list_show_archived");
+            if (chatInfo.isArchived && !showArchived) continue;
 
             if (m_ChatSet[profileId].insert(chatInfo.id).second)
             {
@@ -2005,7 +2006,8 @@ void UiModel::Impl::MessageHandler(std::shared_ptr<ServiceMessage> p_ServiceMess
           bool hasNewMessage = false;
           const std::string& chatId = newMessagesNotify->chatId;
           if (IsChatForceHidden(chatId)) return;
-          if (m_ChatInfos[profileId].count(chatId) && m_ChatInfos[profileId][chatId].isArchived) return;
+          static const bool showArchived = UiConfig::GetBool("list_show_archived");
+          if (!showArchived && m_ChatInfos[profileId].count(chatId) && m_ChatInfos[profileId][chatId].isArchived) return;
 
           std::unordered_map<std::string, ChatMessage>& messages = m_Messages[profileId][chatId];
           std::vector<std::string>& messageVec = m_MessageVec[profileId][chatId];
@@ -2437,6 +2439,16 @@ void UiModel::Impl::MessageHandler(std::shared_ptr<ServiceMessage> p_ServiceMess
       }
       break;
 
+    case UpdateLockNotifyType:
+      {
+        std::shared_ptr<UpdateLockNotify> updateLockNotify = std::static_pointer_cast<UpdateLockNotify>(
+          p_ServiceMessage);
+        // kept apart from m_ChatInfos: lock state may arrive before the chat
+        m_ChatLocked[profileId][updateLockNotify->chatId] = updateLockNotify->isLocked;
+        UpdateList();
+      }
+      break;
+
     case UpdateArchivedNotifyType:
       {
         std::shared_ptr<UpdateArchivedNotify> updateArchivedNotify = std::static_pointer_cast<UpdateArchivedNotify>(
@@ -2447,7 +2459,12 @@ void UiModel::Impl::MessageHandler(std::shared_ptr<ServiceMessage> p_ServiceMess
         if (!m_ChatInfos[profileId].count(chatId)) break;
 
         m_ChatInfos[profileId][chatId].isArchived = isArchived;
-        if (isArchived)
+        static const bool showArchived = UiConfig::GetBool("list_show_archived");
+        if (isArchived && showArchived)
+        {
+          // stays in the list, marked as archived
+        }
+        else if (isArchived)
         {
           m_ChatSet[profileId].erase(chatId);
           m_ChatVec.erase(
@@ -5283,6 +5300,40 @@ void UiModel::SetTerminalActive(bool p_TerminalActive)
 {
   std::unique_lock<owned_mutex> lock(m_ModelMutex);
   GetImpl().SetTerminalActive(p_TerminalActive);
+}
+
+std::string UiModel::GetChatListMarksLocked(const std::string& p_ProfileId, const std::string& p_ChatId)
+{
+  nc_assert(m_ModelMutex.owns_lock());
+  return GetImpl().GetChatListMarks(p_ProfileId, p_ChatId);
+}
+
+std::string UiModel::Impl::GetChatListMarks(const std::string& p_ProfileId, const std::string& p_ChatId)
+{
+  // marks after the chat name in the list: pinned, archived, locked
+  static const std::string pinnedMark = UiConfig::GetStr("list_pinned_indicator");
+  static const std::string archivedMark = UiConfig::GetStr("list_archived_indicator");
+  static const std::string lockedMark = UiConfig::GetStr("list_locked_indicator");
+  std::string marks;
+  auto pit = m_ChatInfos.find(p_ProfileId);
+  if (pit != m_ChatInfos.end())
+  {
+    auto cit = pit->second.find(p_ChatId);
+    if (cit != pit->second.end())
+    {
+      if (cit->second.isPinned && !pinnedMark.empty()) marks += " " + pinnedMark;
+      if (cit->second.isArchived && !archivedMark.empty()) marks += " " + archivedMark;
+    }
+  }
+
+  auto lit = m_ChatLocked.find(p_ProfileId);
+  if ((lit != m_ChatLocked.end()) && !lockedMark.empty())
+  {
+    auto cit = lit->second.find(p_ChatId);
+    if ((cit != lit->second.end()) && cit->second) marks += " " + lockedMark;
+  }
+
+  return marks;
 }
 
 bool UiModel::GetChatIsUnreadLocked(const std::string& p_ProfileId, const std::string& p_ChatId)

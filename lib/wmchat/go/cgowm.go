@@ -24,6 +24,7 @@ package main
 // extern void WmUpdateMuteNotify(int p_ConnId, char* p_ChatId, int p_IsMuted);
 // extern void WmUpdateArchivedNotify(int p_ConnId, char* p_ChatId, int p_IsArchived);
 // extern void WmUpdatePinNotify(int p_ConnId, char* p_ChatId, int p_IsPinned, int p_TimePinned);
+// extern void WmUpdateLockNotify(int p_ConnId, char* p_ChatId, int p_IsLocked);
 // extern void WmReinit(int p_ConnId);
 // extern void WmSetProtocolUiControl(int p_ConnId, int p_IsTakeControl);
 // extern void WmSetStatus(int p_ConnId, int p_Flags);
@@ -196,6 +197,10 @@ func CWmUpdateArchivedNotify(connId int, chatId string, isArchived int) {
 
 func CWmUpdatePinNotify(connId int, chatId string, isPinned int, timePinned int) {
 	C.WmUpdatePinNotify(C.int(connId), C.CString(chatId), C.int(isPinned), C.int(timePinned))
+}
+
+func CWmUpdateLockNotify(connId int, chatId string, isLocked int) {
+	C.WmUpdateLockNotify(C.int(connId), C.CString(chatId), C.int(isLocked))
 }
 
 func CWmReinit(connId int) {

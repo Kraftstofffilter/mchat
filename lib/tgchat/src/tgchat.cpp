@@ -592,8 +592,9 @@ void TgChat::Impl::PerformRequest(std::shared_ptr<RequestMessage> p_RequestMessa
           std::static_pointer_cast<GetChatsRequest>(p_RequestMessage);
         int32_t limit = std::numeric_limits<int32_t>::max(); // no limit
 
-        SendQuery(td::td_api::make_object<td::td_api::getChats>(nullptr, limit),
-                  [this, getChatsRequest](Object object)
+        // main list, and the archive list (chats there are flagged archived
+        // from their positions; the UI decides whether to list them)
+        auto onChats = [this, getChatsRequest](Object object)
         {
           Status::Clear(m_ProfileId, Status::FlagFetching);
 
@@ -618,7 +619,11 @@ void TgChat::Impl::PerformRequest(std::shared_ptr<RequestMessage> p_RequestMessa
             std::make_shared<DeferGetChatDetailsRequest>();
           deferGetChatDetailsRequest->chatIds = chatIds;
           SendRequest(deferGetChatDetailsRequest);
-        });
+        };
+
+        SendQuery(td::td_api::make_object<td::td_api::getChats>(nullptr, limit), onChats);
+        SendQuery(td::td_api::make_object<td::td_api::getChats>(
+                    td::td_api::make_object<td::td_api::chatListArchive>(), limit), onChats);
       }
       break;
 

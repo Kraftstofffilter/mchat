@@ -50,6 +50,7 @@ private:
     void OnKeyNextChat();
     void OnMouse(const MEVENT& p_Event);
     void OnFilesCleaned();
+    std::string GetChatListMarks(const std::string& p_ProfileId, const std::string& p_ChatId);
     void CopyToClipboard(const std::string& p_Text);
     std::string GetHelpFuncAt(const MEVENT& p_Event);
     void OnMouseSelectChat(int p_ChatIndex);
@@ -272,6 +273,8 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, int>> m_MessageOffset;
     // view start while no message is selected, moved by the mouse wheel
     std::unordered_map<std::string, std::unordered_map<std::string, int>> m_ScrollViewStart;
+    // WhatsApp chat lock state per profile and chat
+    std::unordered_map<std::string, std::unordered_map<std::string, bool>> m_ChatLocked;
     // list border being dragged to resize the chat list
     bool m_MouseDragBorder = false;
     // press in the history: a click on release, or a text selection if dragged
@@ -367,6 +370,7 @@ public:
 
   // Locked methods require caller to hold model mutex (intended for Ui*View classes)
   bool GetChatIsUnreadLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
+  std::string GetChatListMarksLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   std::string GetChatStatusLocked(const std::string& p_ProfileId, const std::string& p_ChatId);
   std::vector<std::pair<std::string, std::string>>& GetChatVecLocked();
   std::string GetContactListNameLocked(const std::string& p_ProfileId, const std::string& p_ChatId, bool p_AllowId,

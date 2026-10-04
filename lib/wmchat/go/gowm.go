@@ -828,6 +828,10 @@ func (handler *WmEventHandler) HandleEvent(rawEvt interface{}) {
 
 	case *events.AppState:
 		LOG_TRACE(fmt.Sprintf("%#v - %#v / %#v", evt, evt.Index, evt.SyncActionValue))
+		// chat lock has no typed event; read the raw mutation
+		if len(evt.Index) >= 2 && evt.Index[0] == appstate.IndexLock && evt.SyncActionValue != nil {
+			handler.HandleLock(evt)
+		}
 
 	case *events.LoggedOut:
 		LOG_TRACE(fmt.Sprintf("%#v", evt))
@@ -901,11 +905,15 @@ func (handler *WmEventHandler) SyncChatSettingsOnce() {
 
 		// without this, whatsmeow stores full-sync settings silently
 		client.EmitAppStateEventsOnFullSync = true
-		err := client.FetchAppState(context.TODO(), appstate.WAPatchRegularLow, true, false)
-		if err != nil {
-			LOG_WARNING(fmt.Sprintf("fetch regular_low app state failed %#v", err))
-		} else {
-			LOG_INFO("fetched regular_low app state")
+		// pins, archives and mutes are in regular_low; chat locks may be in
+		// regular_high
+		for _, name := range []appstate.WAPatchName{appstate.WAPatchRegularLow, appstate.WAPatchRegularHigh} {
+			err := client.FetchAppState(context.TODO(), name, true, false)
+			if err != nil {
+				LOG_WARNING(fmt.Sprintf("fetch %s app state failed %#v", name, err))
+			} else {
+				LOG_INFO(fmt.Sprintf("fetched %s app state", name))
+			}
 		}
 	}()
 }
@@ -1266,6 +1274,26 @@ func (handler *WmEventHandler) HandleArchive(archive *events.Archive) {
 
 	LOG_TRACE(fmt.Sprintf("Call CWmUpdateArchivedNotify %s %t", chatId, isArchived))
 	CWmUpdateArchivedNotify(connId, chatId, BoolToInt(isArchived))
+}
+
+func (handler *WmEventHandler) HandleLock(evt *events.AppState) {
+	connId := handler.connId
+	var client *whatsmeow.Client = GetClient(connId)
+	if client == nil {
+		LOG_WARNING("client is nil")
+		return
+	}
+
+	jid, err := types.ParseJID(evt.Index[1])
+	if err != nil {
+		LOG_WARNING(fmt.Sprintf("lock event invalid jid %s", evt.Index[1]))
+		return
+	}
+
+	chatId := GetChatId(client, &jid, nil)
+	isLocked := evt.SyncActionValue.GetLockChatAction().GetLocked()
+	LOG_TRACE(fmt.Sprintf("Call CWmUpdateLockNotify %s %t", chatId, isLocked))
+	CWmUpdateLockNotify(connId, chatId, BoolToInt(isLocked))
 }
 
 func (handler *WmEventHandler) HandlePin(pin *events.Pin) {

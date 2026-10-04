@@ -124,6 +124,7 @@ enum MessageType
   AvailableReactionsNotifyType,
   FindMessageNotifyType,
   UpdatePinNotifyType,
+  UpdateLockNotifyType,
   NewGroupMembersNotifyType,
   UpdateArchivedNotifyType,
 };
@@ -145,6 +146,7 @@ struct ChatInfo
   bool isMuted = false;
   bool isPinned = false;
   bool isArchived = false;
+  bool isLocked = false; // WhatsApp chat lock
   int64_t lastMessageTime = -1;
 };
 
@@ -727,6 +729,16 @@ public:
   std::string chatId;
   bool isPinned = false;
   int64_t timePinned = -1;
+};
+
+class UpdateLockNotify : public ServiceMessage
+{
+public:
+  explicit UpdateLockNotify(const std::string& p_ProfileId)
+    : ServiceMessage(p_ProfileId) { }
+  virtual MessageType GetMessageType() const { return UpdateLockNotifyType; }
+  std::string chatId;
+  bool isLocked = false;
 };
 
 class NewGroupMembersNotify : public ServiceMessage

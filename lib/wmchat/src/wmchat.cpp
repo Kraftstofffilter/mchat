@@ -1232,6 +1232,25 @@ void WmUpdateArchivedNotify(int p_ConnId, char* p_ChatId, int p_IsArchived)
   free(p_ChatId);
 }
 
+void WmUpdateLockNotify(int p_ConnId, char* p_ChatId, int p_IsLocked)
+{
+  WmChat* instance = WmChat::GetInstance(p_ConnId);
+  if (instance != nullptr)
+  {
+    std::shared_ptr<UpdateLockNotify> updateLockNotify =
+      std::make_shared<UpdateLockNotify>(instance->GetProfileId());
+    updateLockNotify->chatId = std::string(p_ChatId);
+    updateLockNotify->isLocked = p_IsLocked;
+
+    std::shared_ptr<DeferNotifyRequest> deferNotifyRequest =
+      std::make_shared<DeferNotifyRequest>();
+    deferNotifyRequest->serviceMessage = updateLockNotify;
+    instance->SendRequest(deferNotifyRequest);
+  }
+
+  free(p_ChatId);
+}
+
 void WmUpdatePinNotify(int p_ConnId, char* p_ChatId, int p_IsPinned, int p_TimePinned)
 {
   WmChat* instance = WmChat::GetInstance(p_ConnId);

@@ -126,6 +126,7 @@ void WmDeleteMessageNotify(int p_ConnId, char* p_ChatId, char* p_MsgId, int p_Is
 void WmUpdateMuteNotify(int p_ConnId, char* p_ChatId, int p_IsMuted);
 void WmUpdateArchivedNotify(int p_ConnId, char* p_ChatId, int p_IsArchived);
 void WmUpdatePinNotify(int p_ConnId, char* p_ChatId, int p_IsPinned, int p_TimePinned);
+void WmUpdateLockNotify(int p_ConnId, char* p_ChatId, int p_IsLocked);
 void WmReinit(int p_ConnId);
 void WmSetProtocolUiControl(int p_ConnId, int p_IsTakeControl);
 void WmSetStatus(int p_ConnId, int p_Flags);

@@ -178,28 +178,6 @@ later builds reuse the cache (`~/.cache/nchat-dist`, `build-dist/`) and take a
 few minutes. Add `NCHAT_DIST_SKIP_IMAGE_BUILD=1` to reuse the build image.
 
 
-Running in the background and in a browser tab
-----------------------------------------------
-mchat can run once in the background under [dtach](https://github.com/crigler/dtach),
-so a terminal (or herdr pane) and browser tabs all attach to the same session;
-the browser side is [ttyd](https://github.com/tsl0922/ttyd):
-
-    install -m 755 utils/mchat/mchat ~/.local/bin/mchat        # attach wrapper
-    install -m 755 dist/nchat-linux-x86_64-musl/bin/nchat ~/.local/bin/mchat-bin
-    cp utils/mchat/systemd/mchat*.service ~/.config/systemd/user/
-    systemctl --user daemon-reload
-    systemctl --user enable --now mchat.service mchat-web.service
-    sudo tailscale serve --bg --https=8452 http://127.0.0.1:7681
-
-Both tools are needed as `~/.local/bin/dtach` and `~/.local/bin/ttyd`; dtach
-0.9 builds with `CFLAGS=-std=gnu89`. `mchat` without arguments then attaches
-(closing the pane or tab detaches); Ctrl-q restarts the background mchat,
-which is also how an updated binary is loaded. With arguments (`--set-pin`,
-`--setup`, ...) the wrapper runs the binary directly; stop `mchat.service`
-before `--setup`. Inside herdr the wrapper notes the pane so the privacy lock
-still locks on pane switches.
-
-
 Updating from nchat
 -------------------
 The fork tracks upstream nchat in the `upstream` remote; mchat's changes live

@@ -358,33 +358,13 @@ namespace
     return false;
   }
 
-  // the pane to watch: HERDR_PANE_ID when started in herdr, otherwise the
-  // pane noted by the attach wrapper (mchat running detached under dtach)
-  std::string CurrentPaneId(const std::string& p_EnvPaneId)
-  {
-    if (!p_EnvPaneId.empty()) return p_EnvPaneId;
-
-    std::ifstream file(FileUtil::ExpandPath("~/.local/share/mchat/attached-pane"));
-    std::string paneId;
-    std::getline(file, paneId);
-    return paneId;
-  }
-
-  void HerdrFocusWatcher(std::string p_Socket, std::string p_EnvPaneId)
+  void HerdrFocusWatcher(std::string p_Socket, std::string p_PaneId)
   {
     bool wasFocused = true;
-    std::string prevPaneId;
     while (true)
     {
-      const std::string paneId = CurrentPaneId(p_EnvPaneId);
-      if (paneId != prevPaneId)
-      {
-        wasFocused = true;
-        prevPaneId = paneId;
-      }
-
       bool focused = true;
-      if (!paneId.empty() && QueryHerdrPaneFocused(p_Socket, paneId, focused))
+      if (QueryHerdrPaneFocused(p_Socket, p_PaneId, focused))
       {
         if (wasFocused && !focused)
         {
@@ -407,16 +387,9 @@ void UiLock::StartFocusWatch()
   started = true;
   const char* socketPath = getenv("HERDR_SOCKET_PATH");
   const char* paneId = getenv("HERDR_PANE_ID");
-  std::string socket = (socketPath != nullptr) ? socketPath : "";
-  if (socket.empty())
-  {
-    // detached under dtach: herdr's default socket
-    socket = FileUtil::ExpandPath("~/.config/herdr/herdr.sock");
-  }
+  if ((socketPath == nullptr) || (paneId == nullptr) || (*socketPath == 0) || (*paneId == 0)) return;
 
-  if (!FileUtil::Exists(socket)) return;
-
-  std::thread(HerdrFocusWatcher, socket, std::string((paneId != nullptr) ? paneId : "")).detach();
+  std::thread(HerdrFocusWatcher, std::string(socketPath), std::string(paneId)).detach();
 }
 
 bool UiLock::TakePaneUnfocused()

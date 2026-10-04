@@ -232,6 +232,7 @@ void UiKeyConfig::Init(bool p_MapKeys)
     { "toggle_emoji", "KEY_CTRLY" },
     { "toggle_help", "KEY_CTRLG" },
     { "clean_files", "\\33\\153" }, // alt/opt-k
+    { "lock_screen", "\\33\\172" }, // alt/opt-z
     { "toggle_list", "KEY_CTRLL" },
     { "toggle_top", "KEY_NONE" },
     { "next_chat", "KEY_TAB" },

@@ -432,6 +432,8 @@ add_executable(nchat
   src/uifiles.h
   src/uiimage.cpp
   src/uiimage.h
+  src/uilock.cpp
+  src/uilock.h
   src/uikeyconfig.cpp
   src/uikeyconfig.h
   src/uikeydump.cpp

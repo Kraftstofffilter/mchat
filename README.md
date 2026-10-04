@@ -57,6 +57,19 @@ Attachments:
   colored blocks elsewhere. Clicking an attachment only selects (and
   downloads) it.
 
+Privacy lock:
+- The whole UI goes black after a period without key or mouse input, when
+  the terminal loses focus, or on Alt-z / the **Lock** help bar command.
+  Typing the PIN (4 to 8 digits) and Enter unlocks; after 5 wrong PINs input
+  is refused for 30 seconds. Messages keep arriving while locked, and desktop
+  notifications are suppressed.
+- The first lock asks to create the PIN; `mchat --set-pin` changes it (it asks
+  for the current one). The PIN is stored only as a salted
+  PBKDF2-HMAC-SHA256 hash in `~/.config/nchat/lock.pin`; delete that file if
+  the PIN is forgotten.
+- The lock protects against people looking at the screen, not against
+  someone with the keyboard and a shell on the same account.
+
 Messages and chats:
 - WhatsApp and Telegram formatting is rendered with the markers hidden:
   `*bold*`, `_italic_`, `~strikethrough~` (dim), `` `code` ``, and fenced
@@ -88,6 +101,8 @@ it saves the file on exit):
 | `list_show_protocol` | `0` | Append `@W` / `@T` to each chat in the list. |
 | `message_formatting` | `0` | Render bold, italic, strikethrough, code and code blocks. |
 | `list_show_archived` | `0` | Keep archived chats in the chat list instead of hiding them. |
+| `lock_timeout_sec` | `0` | Privacy lock after this many seconds without input; `0` disables the timer. |
+| `lock_on_focus_out` | `0` | Privacy lock when the terminal loses focus. |
 | `list_pinned_indicator` | empty | Mark after pinned chats in the list, for example `↑`. |
 | `list_archived_indicator` | empty | Mark after archived chats in the list, for example `▤`. |
 | `list_locked_indicator` | empty | Mark after WhatsApp locked chats in the list, for example `⚿`. |
@@ -97,6 +112,7 @@ New key in `~/.config/nchat/key.conf`:
 | Function | Default | Description |
 |----------|---------|-------------|
 | `clean_files` | Alt-k (`\33\153`) | Delete downloaded files after confirmation. |
+| `lock_screen` | Alt-z (`\33\172`) | Turn on the privacy lock. |
 
 New option in `~/.config/nchat/color.conf`:
 
@@ -119,6 +135,8 @@ Example `ui.conf` lines for the setup this fork was made for:
     list_pinned_indicator=↑
     list_archived_indicator=▤
     list_locked_indicator=⚿
+    lock_timeout_sec=120
+    lock_on_focus_out=1
 
 Publishing the attachment folder on a Tailscale network (needs root once):
 

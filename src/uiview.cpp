@@ -7,6 +7,8 @@
 
 #include "uiview.h"
 
+#include "uilock.h"
+
 #include <cstdlib>
 
 #include "log.h"
@@ -116,6 +118,13 @@ void UiView::Init()
 
 void UiView::Draw()
 {
+  // privacy lock: only the black lock screen is drawn
+  if (UiLock::IsLocked())
+  {
+    UiLock::Draw();
+    return;
+  }
+
   m_UiTopView->Draw();
   m_UiHelpView->Draw();
   m_UiStatusView->Draw();

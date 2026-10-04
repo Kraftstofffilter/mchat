@@ -55,6 +55,8 @@ void UiConfig::Init()
     { "list_width", "14" },
     { "list_show_protocol", "0" },
     { "list_show_archived", "0" },
+    { "lock_timeout_sec", "0" },
+    { "lock_on_focus_out", "0" },
     { "list_pinned_indicator", "" },
     { "list_archived_indicator", "" },
     { "list_locked_indicator", "" },

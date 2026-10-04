@@ -29,6 +29,7 @@
 #include "strutil.h"
 #include "sysutil.h"
 #include "ui.h"
+#include "uilock.h"
 
 #ifdef HAS_DUMMY
 #include "duchat.h"
@@ -150,6 +151,7 @@ int main(int argc, char* argv[])
   bool isKeyDump = false;
   bool isRemove = false;
   bool isSetup = false;
+  bool isSetPin = false;
   std::vector<std::string> args(argv + 1, argv + argc);
   for (auto it = args.begin(); it != args.end(); ++it)
   {
@@ -193,6 +195,10 @@ int main(int argc, char* argv[])
     {
       isSetup = true;
     }
+    else if (*it == "--set-pin")
+    {
+      isSetPin = true;
+    }
     else if ((*it == "-v") || (*it == "--version"))
     {
       ShowVersion();
@@ -208,6 +214,14 @@ int main(int argc, char* argv[])
       ShowHelp();
       return 1;
     }
+  }
+
+  if (isSetPin)
+  {
+    // privacy lock PIN; works while mchat runs (the PIN file is replaced
+    // atomically and read on each unlock)
+    FileUtil::MkDir(FileUtil::GetApplicationDir());
+    return UiLock::SetPinCli();
   }
 
   bool isDirInited = false;
@@ -645,6 +659,7 @@ void ShowHelp()
     "    -m, --devmode          developer mode\n"
     "    -r, --remove           remove chat protocol account\n"
     "    -s, --setup            set up chat protocol account\n"
+    "    --set-pin              set or change the privacy lock PIN\n"
     "    -v, --version          output version information and exit\n"
     "    -x, --export <DIR>     export message cache to specified dir\n"
     "\n"

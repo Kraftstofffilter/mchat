@@ -35,6 +35,7 @@
 #include "uicontroller.h"
 #include "uifiles.h"
 #include "uiimage.h"
+#include "uilock.h"
 #include "uiemojilistdialog.h"
 #include "uifilelistdialog.h"
 #include "uikeyconfig.h"
@@ -2671,6 +2672,12 @@ void UiModel::Impl::ProcessTimers()
   {
     lastTimeMs = nowTimeMs;
 
+    static const int lockTimeoutSec = UiConfig::GetNum("lock_timeout_sec");
+    if ((lockTimeoutSec > 0) && !UiLock::IsLocked() && (UiLock::IdleSec() >= lockTimeoutSec))
+    {
+      UiLock::Lock();
+    }
+
     static const int autoSelectChatTimeoutSec = UiConfig::GetNum("auto_select_chat_timeout_sec");
     if (!IsCurrentChatSet() && (autoSelectChatTimeoutSec != 0) && (m_LastSyncMessageTime != 0))
     {
@@ -3552,6 +3559,9 @@ void UiModel::Impl::DesktopNotify(const std::string& p_Name, const std::string& 
 {
   static const bool desktopNotifyEnabled = UiConfig::GetBool("desktop_notify_enabled");
   if (!desktopNotifyEnabled) return;
+
+  // no message previews while the privacy lock is on
+  if (UiLock::IsLocked()) return;
 
   static const std::string cmdTemplate = [this]()
   {
@@ -4882,6 +4892,43 @@ void UiModel::KeyHandler(wint_t p_Key)
 
   static wint_t keyMouse = UiKeyConfig::GetOffsettedKeyCode(KEY_MOUSE, true);
   static wint_t keyCleanFiles = UiKeyConfig::GetKey("clean_files");
+  static wint_t keyLockScreen = UiKeyConfig::GetKey("lock_screen");
+
+  // privacy lock: while locked, input only reaches the PIN prompt (quit and
+  // terminal resize excepted); focus loss and the lock key lock the UI
+  if (UiLock::IsLocked())
+  {
+    if (p_Key == keyQuit)
+    {
+      OnKeyQuit();
+    }
+    else if (p_Key == keyTerminalResize)
+    {
+      std::unique_lock<owned_mutex> lock(m_ModelMutex);
+      GetImpl().TerminalResize();
+      UiLock::SetDirty();
+    }
+    else if ((p_Key != keyMouse) && (p_Key != keyTerminalFocusIn) && (p_Key != keyTerminalFocusOut) &&
+             UiLock::Key(p_Key))
+    {
+      std::unique_lock<owned_mutex> lock(m_ModelMutex);
+      GetImpl().ReinitView();
+    }
+
+    return;
+  }
+
+  if ((p_Key != keyTerminalFocusIn) && (p_Key != keyTerminalFocusOut) && (p_Key != keyTerminalResize))
+  {
+    UiLock::NoteActivity();
+  }
+
+  static const bool lockOnFocusOut = UiConfig::GetBool("lock_on_focus_out");
+  if ((p_Key == keyLockScreen) || ((p_Key == keyTerminalFocusOut) && lockOnFocusOut))
+  {
+    UiLock::Lock();
+    if (p_Key == keyLockScreen) return;
+  }
 
   if (p_Key == keyMouse)
   {

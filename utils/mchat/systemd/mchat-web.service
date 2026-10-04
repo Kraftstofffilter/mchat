@@ -1,0 +1,12 @@
+[Unit]
+Description=mchat in a browser tab (ttyd on localhost:7681)
+Wants=mchat.service
+After=mchat.service
+
+[Service]
+ExecStart=%h/.local/bin/ttyd -i lo -p 7681 -W -t titleFixed=mchat -t disableLeaveAlert=true %h/.local/bin/mchat
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

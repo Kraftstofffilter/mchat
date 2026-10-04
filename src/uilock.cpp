@@ -18,7 +18,15 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <atomic>
+#include <cstdlib>
+#include <thread>
+
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include "fileutil.h"
+#include "uiconfig.h"
 #include "uikeyconfig.h"
 
 namespace
@@ -277,6 +285,9 @@ namespace
   int64_t s_LockoutUntilMs = 0;
   int64_t s_LastActivityMs = 0;
   bool s_Dirty = true;
+  // disguise: previous prompt lines, like an idle shell after Enter presses
+  int s_PromptLines = 1;
+  std::atomic<bool> s_PaneUnfocused(false);
 
   int64_t NowMs()
   {
@@ -297,6 +308,95 @@ namespace
   }
 }
 
+namespace
+{
+  // herdr does not forward focus changes between its panes; ask its API
+  // whether this pane is still the focused one
+  bool QueryHerdrPaneFocused(const std::string& p_Socket, const std::string& p_PaneId, bool& p_Focused)
+  {
+    const int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd < 0) return false;
+
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, p_Socket.c_str(), sizeof(addr.sun_path) - 1);
+    struct timeval tv = { 2, 0 };
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    if (connect(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
+    {
+      close(fd);
+      return false;
+    }
+
+    const std::string req = "{\"id\":\"mchat-lock\",\"method\":\"pane.get\",\"params\":{\"pane_id\":\"" +
+      p_PaneId + "\"}}\n";
+    std::string resp;
+    if (write(fd, req.data(), req.size()) == (ssize_t)req.size())
+    {
+      char buf[4096];
+      ssize_t n = 0;
+      while ((resp.find('\n') == std::string::npos) && ((n = read(fd, buf, sizeof(buf))) > 0))
+      {
+        resp.append(buf, n);
+      }
+    }
+
+    close(fd);
+    if (resp.find("\"focused\":false") != std::string::npos)
+    {
+      p_Focused = false;
+      return true;
+    }
+
+    if (resp.find("\"focused\":true") != std::string::npos)
+    {
+      p_Focused = true;
+      return true;
+    }
+
+    return false;
+  }
+
+  void HerdrFocusWatcher(std::string p_Socket, std::string p_PaneId)
+  {
+    bool wasFocused = true;
+    while (true)
+    {
+      bool focused = true;
+      if (QueryHerdrPaneFocused(p_Socket, p_PaneId, focused))
+      {
+        if (wasFocused && !focused)
+        {
+          s_PaneUnfocused = true;
+        }
+
+        wasFocused = focused;
+      }
+
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+  }
+}
+
+void UiLock::StartFocusWatch()
+{
+  static bool started = false;
+  if (started) return;
+
+  started = true;
+  const char* socketPath = getenv("HERDR_SOCKET_PATH");
+  const char* paneId = getenv("HERDR_PANE_ID");
+  if ((socketPath == nullptr) || (paneId == nullptr) || (*socketPath == 0) || (*paneId == 0)) return;
+
+  std::thread(HerdrFocusWatcher, std::string(socketPath), std::string(paneId)).detach();
+}
+
+bool UiLock::TakePaneUnfocused()
+{
+  return s_PaneUnfocused.exchange(false);
+}
+
 bool UiLock::IsLocked()
 {
   return s_Mode != Unlocked;
@@ -311,7 +411,8 @@ void UiLock::Lock()
   if (HasPin())
   {
     s_Mode = EnterPin;
-    s_Message = "locked";
+    s_Message.clear();
+    s_PromptLines = 1;
   }
   else
   {
@@ -380,12 +481,11 @@ bool UiLock::Key(wint_t p_Key)
   s_Input.clear();
   if (s_Mode == EnterPin)
   {
+    // disguised: every Enter just shows a new prompt line, like a shell;
+    // during the 30 s lockout input is ignored without a sign
+    ++s_PromptLines;
     const int64_t now = NowMs();
-    if (now < s_LockoutUntilMs)
-    {
-      s_Message = "wait " + std::to_string((s_LockoutUntilMs - now + 999) / 1000) + " s";
-      return false;
-    }
+    if (input.empty() || (now < s_LockoutUntilMs)) return false;
 
     if (CheckPin(input))
     {
@@ -399,11 +499,6 @@ bool UiLock::Key(wint_t p_Key)
     {
       s_Failures = 0;
       s_LockoutUntilMs = now + 30000;
-      s_Message = "wait 30 s";
-    }
-    else
-    {
-      s_Message = "wrong PIN";
     }
   }
   else if (s_Mode == NewPin)
@@ -452,10 +547,39 @@ void UiLock::Draw(bool p_Force /*= false*/)
     mvwaddnstr(stdscr, y, 0, blank.c_str(), blank.size());
   }
 
+  if (s_Mode == EnterPin)
+  {
+    // disguise: an idle shell; the PIN is typed without echo
+    static const std::string prompt = []()
+    {
+      std::string configured = UiConfig::GetStr("lock_prompt");
+      if (!configured.empty()) return configured + " ";
+
+      const char* user = getenv("USER");
+      char host[256] = { 0 };
+      gethostname(host, sizeof(host) - 1);
+      return std::string(user ? user : "user") + "@" + host + ":~/m$ ";
+    }();
+
+    const int lines = std::min(s_PromptLines, std::max(LINES, 1));
+    for (int y = 0; y < lines; ++y)
+    {
+      mvwaddstr(stdscr, y, 0, prompt.c_str());
+    }
+
+    wattr_set(stdscr, A_NORMAL, 0, nullptr);
+    touchwin(stdscr);
+    wmove(stdscr, lines - 1, std::min((int)prompt.size(), std::max(COLS - 1, 0)));
+    wrefresh(stdscr);
+    curs_set(1);
+    return;
+  }
+
+  // PIN setup (first lock): visible prompts, shown only to the owner
   std::string text = s_Message;
   if (!s_Input.empty())
   {
-    text = ((s_Mode == EnterPin) ? std::string("PIN: ") : s_Message + " ");
+    text = s_Message + " ";
     for (size_t i = 0; i < s_Input.size(); ++i) text += "\xe2\x80\xa2"; // bullet
   }
 

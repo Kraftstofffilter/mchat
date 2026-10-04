@@ -33,6 +33,11 @@ public:
   static void Draw(bool p_Force = false);
   static void SetDirty();
 
+  // inside herdr: watch whether this pane is the focused one
+  static void StartFocusWatch();
+  // true once after this herdr pane lost focus
+  static bool TakePaneUnfocused();
+
   // --set-pin: interactive PIN change on the terminal; returns exit code
   static int SetPinCli();
 };

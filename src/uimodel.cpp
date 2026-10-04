@@ -2678,6 +2678,16 @@ void UiModel::Impl::ProcessTimers()
       UiLock::Lock();
     }
 
+    static const bool lockOnFocusOut = UiConfig::GetBool("lock_on_focus_out");
+    if (lockOnFocusOut)
+    {
+      UiLock::StartFocusWatch();
+      if (UiLock::TakePaneUnfocused() && !UiLock::IsLocked())
+      {
+        UiLock::Lock();
+      }
+    }
+
     static const int autoSelectChatTimeoutSec = UiConfig::GetNum("auto_select_chat_timeout_sec");
     if (!IsCurrentChatSet() && (autoSelectChatTimeoutSec != 0) && (m_LastSyncMessageTime != 0))
     {

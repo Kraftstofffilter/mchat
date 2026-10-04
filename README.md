@@ -58,11 +58,15 @@ Attachments:
   downloads) it.
 
 Privacy lock:
-- The whole UI goes black after a period without key or mouse input, when
-  the terminal loses focus, or on Alt-z / the **Lock** help bar command.
-  Typing the PIN (4 to 8 digits) and Enter unlocks; after 5 wrong PINs input
-  is refused for 30 seconds. Messages keep arriving while locked, and desktop
-  notifications are suppressed.
+- The whole UI is replaced by what looks like an idle shell prompt after a
+  period without key or mouse input, when the terminal loses focus (inside
+  herdr also when another pane gets focus, checked every second through its
+  API), or on Alt-z / the **Lock** help bar command. The default prompt
+  `user@host:~/m$` carries a cue only its owner reads (`~/m`); `lock_prompt`
+  sets another. The PIN (4 to 8 digits) is typed without echo, and Enter shows
+  a new prompt line whether it was right or not; after 5 wrong PINs input is
+  ignored for 30 seconds without a sign. Messages keep arriving while locked,
+  and desktop notifications are suppressed.
 - The first lock asks to create the PIN; `mchat --set-pin` changes it (it asks
   for the current one). The PIN is stored only as a salted
   PBKDF2-HMAC-SHA256 hash in `~/.config/nchat/lock.pin`; delete that file if
@@ -102,7 +106,8 @@ it saves the file on exit):
 | `message_formatting` | `0` | Render bold, italic, strikethrough, code and code blocks. |
 | `list_show_archived` | `0` | Keep archived chats in the chat list instead of hiding them. |
 | `lock_timeout_sec` | `0` | Privacy lock after this many seconds without input; `0` disables the timer. |
-| `lock_on_focus_out` | `0` | Privacy lock when the terminal loses focus. |
+| `lock_on_focus_out` | `0` | Privacy lock when the terminal loses focus, or (in herdr) when another pane gets focus. |
+| `lock_prompt` | empty | Prompt shown while locked; empty uses `<user>@<host>:~/m$`. |
 | `list_pinned_indicator` | empty | Mark after pinned chats in the list, for example `↑`. |
 | `list_archived_indicator` | empty | Mark after archived chats in the list, for example `▤`. |
 | `list_locked_indicator` | empty | Mark after WhatsApp locked chats in the list, for example `⚿`. |

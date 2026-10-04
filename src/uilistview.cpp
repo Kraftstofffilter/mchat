@@ -74,7 +74,7 @@ void UiListView::Draw()
       // profile ids look like WhatsAppMd_+123 or Telegram_+123
       // short tag: @W (WhatsApp), @T (Telegram), @S (Signal)
       const std::string protocol = chatPair.first.substr(0, 1);
-      protocols.push_back(StrUtil::ToWString(marks + " @" + protocol));
+      protocols.push_back(StrUtil::ToWString(" @" + protocol + marks));
     }
     else
     {

@@ -12,6 +12,10 @@ works the same way from the keyboard.
 mchat keeps nchat's program internals: the built binary is called `nchat`
 (install it under the name `mchat`), and the configuration stays in
 `~/.config/nchat`, so an existing nchat setup and its logins carry over.
+Do not run an original nchat on the same configuration: it drops the
+mchat-only options from `ui.conf` when it saves it, resetting them to their
+defaults. Pointing the `nchat` command at mchat (`ln -s mchat nchat`) avoids
+that.
 The rest of this README after the mchat sections is nchat's own
 documentation and applies unchanged.
 
@@ -59,6 +63,9 @@ Messages and chats:
   code blocks (```` ``` ````) drawn with a gutter.
 - The chat list can tag each chat with its protocol: `@W` WhatsApp,
   `@T` Telegram.
+- Archived chats (WhatsApp and Telegram) can stay in the chat list; Telegram's
+  archive list is fetched as well. Plain marks after chat names show pinned
+  (`↑`), archived (`▤`) and WhatsApp locked (`⚿`) chats.
 - WhatsApp chats pinned on the phone are shown pinned (the chat settings are
   fully synced at each start).
 - Emoji written with a variation selector after a narrow character (such as
@@ -80,6 +87,10 @@ it saves the file on exit):
 | `thumbnail_rows` | `8` | Height of picture previews in terminal rows. |
 | `list_show_protocol` | `0` | Append `@W` / `@T` to each chat in the list. |
 | `message_formatting` | `0` | Render bold, italic, strikethrough, code and code blocks. |
+| `list_show_archived` | `0` | Keep archived chats in the chat list instead of hiding them. |
+| `list_pinned_indicator` | empty | Mark after pinned chats in the list, for example `↑`. |
+| `list_archived_indicator` | empty | Mark after archived chats in the list, for example `▤`. |
+| `list_locked_indicator` | empty | Mark after WhatsApp locked chats in the list, for example `⚿`. |
 
 New key in `~/.config/nchat/key.conf`:
 
@@ -104,6 +115,10 @@ Example `ui.conf` lines for the setup this fork was made for:
     downloadable_indicator=⬇
     list_show_protocol=1
     message_formatting=1
+    list_show_archived=1
+    list_pinned_indicator=↑
+    list_archived_indicator=▤
+    list_locked_indicator=⚿
 
 Publishing the attachment folder on a Tailscale network (needs root once):
 

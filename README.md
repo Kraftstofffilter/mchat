@@ -81,8 +81,9 @@ Messages and chats:
 - The chat list can tag each chat with its protocol: `@W` WhatsApp,
   `@T` Telegram.
 - Archived chats (WhatsApp and Telegram) can stay in the chat list; Telegram's
-  archive list is fetched as well. Plain marks after chat names show pinned
-  (`↑`), archived (`▤`) and WhatsApp locked (`⚿`) chats.
+  archive list is fetched as well. Plain marks after the protocol tag show
+  pinned (`↑`), archived (`▤`) and WhatsApp locked (`⚿`) chats, for example
+  `Ana Torres @W ↑ ⚿`.
 - WhatsApp chats pinned on the phone are shown pinned (the chat settings are
   fully synced at each start).
 - Emoji written with a variation selector after a narrow character (such as

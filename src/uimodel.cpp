@@ -2682,7 +2682,11 @@ void UiModel::Impl::ProcessTimers()
     if (lockOnFocusOut)
     {
       UiLock::StartFocusWatch();
-      if (UiLock::TakePaneUnfocused() && !UiLock::IsLocked())
+      // locks only after staying away a while, so switching windows to paste
+      // a copied message and coming back does not lock
+      static const int focusOutDelaySec = UiConfig::GetNum("lock_focus_out_delay_sec");
+      const int64_t unfocusedSec = UiLock::UnfocusedSec();
+      if ((unfocusedSec >= 0) && (unfocusedSec >= focusOutDelaySec) && !UiLock::IsLocked())
       {
         UiLock::Lock();
       }
@@ -4933,11 +4937,15 @@ void UiModel::KeyHandler(wint_t p_Key)
     UiLock::NoteActivity();
   }
 
-  static const bool lockOnFocusOut = UiConfig::GetBool("lock_on_focus_out");
-  if ((p_Key == keyLockScreen) || ((p_Key == keyTerminalFocusOut) && lockOnFocusOut))
+  if ((p_Key == keyTerminalFocusOut) || (p_Key == keyTerminalFocusIn))
+  {
+    UiLock::SetTerminalFocused(p_Key == keyTerminalFocusIn);
+  }
+
+  if (p_Key == keyLockScreen)
   {
     UiLock::Lock();
-    if (p_Key == keyLockScreen) return;
+    return;
   }
 
   if (p_Key == keyMouse)

@@ -59,8 +59,8 @@ Attachments:
 
 Privacy lock:
 - The whole UI is replaced by what looks like an idle shell prompt after a
-  period without key or mouse input, when the terminal loses focus (inside
-  herdr also when another pane gets focus, checked every second through its
+  period without key or mouse input, when the terminal stays unfocused for 30
+  seconds (inside herdr also another pane, checked every second through its
   API), or on Alt-z / the **Lock** help bar command. The default prompt
   `user@host:~/m$` carries a cue only its owner reads (`~/m`); `lock_prompt`
   sets another. The PIN (4 to 8 digits) is typed without echo, and Enter shows
@@ -108,6 +108,7 @@ it saves the file on exit):
 | `list_show_archived` | `0` | Keep archived chats in the chat list instead of hiding them. |
 | `lock_timeout_sec` | `0` | Privacy lock after this many seconds without input; `0` disables the timer. |
 | `lock_on_focus_out` | `0` | Privacy lock when the terminal loses focus, or (in herdr) when another pane gets focus. |
+| `lock_focus_out_delay_sec` | `30` | Seconds the terminal or pane must stay unfocused before that lock, so switching away briefly (for example to paste) does not lock. |
 | `lock_prompt` | empty | Prompt shown while locked; empty uses `<user>@<host>:~/m$`. |
 | `list_pinned_indicator` | empty | Mark after pinned chats in the list, for example `↑`. |
 | `list_archived_indicator` | empty | Mark after archived chats in the list, for example `▤`. |

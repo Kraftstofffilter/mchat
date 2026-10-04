@@ -35,8 +35,10 @@ public:
 
   // inside herdr: watch whether this pane is the focused one
   static void StartFocusWatch();
-  // true once after this herdr pane lost focus
-  static bool TakePaneUnfocused();
+  // terminal focus in/out events
+  static void SetTerminalFocused(bool p_Focused);
+  // seconds the terminal or herdr pane has been unfocused, -1 if focused
+  static int64_t UnfocusedSec();
 
   // --set-pin: interactive PIN change on the terminal; returns exit code
   static int SetPinCli();

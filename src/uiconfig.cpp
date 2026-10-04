@@ -57,6 +57,7 @@ void UiConfig::Init()
     { "list_show_archived", "0" },
     { "lock_timeout_sec", "0" },
     { "lock_on_focus_out", "0" },
+    { "lock_focus_out_delay_sec", "30" },
     { "lock_prompt", "" },
     { "list_pinned_indicator", "" },
     { "list_archived_indicator", "" },

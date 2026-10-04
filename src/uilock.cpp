@@ -287,7 +287,9 @@ namespace
   bool s_Dirty = true;
   // disguise: previous prompt lines, like an idle shell after Enter presses
   int s_PromptLines = 1;
-  std::atomic<bool> s_PaneUnfocused(false);
+  // since when the terminal / the herdr pane is unfocused (0 = focused)
+  std::atomic<int64_t> s_TermUnfocusedSinceMs(0);
+  std::atomic<int64_t> s_PaneUnfocusedSinceMs(0);
 
   int64_t NowMs()
   {
@@ -368,7 +370,11 @@ namespace
       {
         if (wasFocused && !focused)
         {
-          s_PaneUnfocused = true;
+          s_PaneUnfocusedSinceMs = NowMs();
+        }
+        else if (focused)
+        {
+          s_PaneUnfocusedSinceMs = 0;
         }
 
         wasFocused = focused;
@@ -392,9 +398,27 @@ void UiLock::StartFocusWatch()
   std::thread(HerdrFocusWatcher, std::string(socketPath), std::string(paneId)).detach();
 }
 
-bool UiLock::TakePaneUnfocused()
+void UiLock::SetTerminalFocused(bool p_Focused)
 {
-  return s_PaneUnfocused.exchange(false);
+  if (!p_Focused)
+  {
+    int64_t expected = 0;
+    s_TermUnfocusedSinceMs.compare_exchange_strong(expected, NowMs());
+  }
+  else
+  {
+    s_TermUnfocusedSinceMs = 0;
+  }
+}
+
+int64_t UiLock::UnfocusedSec()
+{
+  const int64_t term = s_TermUnfocusedSinceMs;
+  const int64_t pane = s_PaneUnfocusedSinceMs;
+  int64_t since = 0;
+  if (term > 0) since = term;
+  if ((pane > 0) && ((since == 0) || (pane < since))) since = pane;
+  return (since > 0) ? ((NowMs() - since) / 1000) : -1;
 }
 
 bool UiLock::IsLocked()
@@ -405,6 +429,10 @@ bool UiLock::IsLocked()
 void UiLock::Lock()
 {
   if (IsLocked()) return;
+
+  // the lock consumes the unfocused period, so unlocking does not relock
+  s_TermUnfocusedSinceMs = 0;
+  s_PaneUnfocusedSinceMs = 0;
 
   s_Input.clear();
   s_NewPin.clear();
